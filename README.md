@@ -54,7 +54,7 @@ npm install
 npm start
 ```
 
-Die Anwendung ist dann unter [http://localhost:3000](http://localhost:3000) erreichbar.
+Die Anwendung ist dann unter [http://localhost:8300](http://localhost:8300) erreichbar.
 
 ### Entwicklungsmodus
 
@@ -65,11 +65,40 @@ npm run dev   # Startet den Server mit --watch (Auto-Restart bei Dateiänderunge
 
 ### Deployment
 
-Für das Deployment wird der `client/`-Ordner vom Server als statisches Verzeichnis bereitgestellt. Der Server-Port kann über die Umgebungsvariable `PORT` konfiguriert werden:
+Für das Deployment wird der `client/`-Ordner vom Server als statisches Verzeichnis bereitgestellt. Host und Port können über Umgebungsvariablen konfiguriert werden:
 
 ```bash
-PORT=8080 npm start
+HOST=0.0.0.0 PORT=8300 npm start
 ```
+
+#### Deployment auf dem Uni-Server (141.72.136.155, Ports 8300–8399)
+
+```bash
+# 1. Per SSH auf den Server verbinden
+ssh <benutzername>@141.72.136.155
+
+# 2. Repository klonen (falls noch nicht geschehen)
+git clone https://github.com/timswll/MenschAergerDichNicht.git
+cd MenschAergerDichNicht
+
+# 3. Server-Abhängigkeiten installieren
+cd server
+npm install
+cd ..
+
+# 4. Optional: .env-Datei anlegen (Standard-Port ist bereits 8300)
+cp .env.example .env
+# Bei Bedarf Port in .env anpassen (erlaubt: 8300–8399)
+
+# 5. Server starten
+npm start
+# → Server läuft auf http://141.72.136.155:8300
+
+# 6. Server im Hintergrund starten (läuft weiter nach Logout)
+nohup npm start > server.log 2>&1 &
+```
+
+Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 
 ## Projektstruktur
 
@@ -102,7 +131,7 @@ PORT=8080 npm start
 
 ## HTTP API-Spezifikation
 
-Basis-URL: `http://localhost:3000/api`
+Basis-URL: `http://<host>:<port>/api` (z.B. `http://141.72.136.155:8300/api`)
 
 ### `GET /api/health`
 
