@@ -131,7 +131,7 @@ io.on('connection', (socket) => {
       });
 
       // Auto-advance if no valid moves
-      const allInBase = game._allPiecesInBase(playerIndex);
+      const allInBase = game.allPiecesInBase(playerIndex);
       const noMoves = validMoves.length === 0;
 
       if (noMoves) {

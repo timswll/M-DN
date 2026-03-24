@@ -138,7 +138,7 @@ class Game {
     this.diceValue = value;
     this.diceRolled = true;
 
-    const allInBase = this._allPiecesInBase(this.currentPlayerIndex);
+    const allInBase = this.allPiecesInBase(this.currentPlayerIndex);
 
     if (allInBase) {
       this.rollAttempts++;
@@ -155,7 +155,7 @@ class Game {
   /*  Move helpers                                                       */
   /* ------------------------------------------------------------------ */
 
-  _allPiecesInBase(playerIndex) {
+  allPiecesInBase(playerIndex) {
     return this.players[playerIndex].pieces.every((p) => p.isBase);
   }
 
@@ -201,9 +201,13 @@ class Game {
       }
 
       if (piece.isHome) {
-        // Can move forward inside home if target slot is free and in range
+        // Can move forward inside home if target slot is free, in range, and path clear
         const newHome = piece.homePosition + dice;
-        if (newHome < PIECES_PER_PLAYER && !this._ownPieceInHome(playerIndex, newHome)) {
+        if (
+          newHome < PIECES_PER_PLAYER &&
+          !this._ownPieceInHome(playerIndex, newHome) &&
+          !this._homePathBlocked(playerIndex, piece.homePosition, newHome)
+        ) {
           moves.push(i);
         }
         continue;
@@ -218,7 +222,7 @@ class Game {
         const homeSlot = newSteps - BOARD_SIZE;
         if (homeSlot < PIECES_PER_PLAYER && !this._ownPieceInHome(playerIndex, homeSlot)) {
           // Verify no own pieces blocking home path
-          if (!this._homePathBlocked(playerIndex, piece.homePosition, homeSlot)) {
+          if (!this._homePathBlocked(playerIndex, -1, homeSlot)) {
             moves.push(i);
           }
         }
@@ -254,10 +258,8 @@ class Game {
    * Check whether any own piece blocks the home corridor between current
    * home position and target home position (exclusive of current, inclusive of target).
    */
-  _homePathBlocked(playerIndex, currentHome, targetHome) {
-    // currentHome is -1 when entering from the board
-    const start = currentHome === -1 || currentHome === undefined ? -1 : currentHome;
-    for (let h = start + 1; h <= targetHome; h++) {
+  _homePathBlocked(playerIndex, fromSlot, targetSlot) {
+    for (let h = fromSlot + 1; h <= targetSlot; h++) {
       if (this._ownPieceInHome(playerIndex, h)) {
         return true;
       }

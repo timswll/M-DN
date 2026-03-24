@@ -6,9 +6,9 @@ const GAME_ID_PATTERN = /^[A-Z0-9]{6}$/;
 const NAME_PATTERN = /^[a-zA-Z0-9\s\u00C0-\u00FF]+$/;
 
 /**
- * Strip HTML tags from a string.
+ * Reject strings containing HTML-like characters.
  */
-const sanitizeHtml = (str) => str.replace(/<[^>]*>/g, '');
+const containsHtml = (str) => /[<>]/.test(str);
 
 /**
  * Validate and sanitize a player name.
@@ -21,7 +21,11 @@ const validatePlayerName = (name) => {
     throw new Error('Player name must be a string');
   }
 
-  const sanitized = sanitizeHtml(name).trim();
+  if (containsHtml(name)) {
+    throw new Error('Player name must not contain HTML characters');
+  }
+
+  const sanitized = name.trim();
 
   if (sanitized.length === 0) {
     throw new Error('Player name cannot be empty');
