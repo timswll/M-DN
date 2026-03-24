@@ -1,0 +1,13 @@
+{
+  "name": "mensch-aergere-dich-nicht",
+  "version": "1.0.0",
+  "description": "Mensch Ärgere Dich Nicht - Online Multiplayer Board Game",
+  "private": true,
+  "scripts": {
+    "start": "cd server && node index.js",
+    "install-server": "cd server && npm install",
+    "dev": "cd server && node --watch index.js"
+  },
+  "keywords": ["board-game", "multiplayer", "socket.io"],
+  "license": "MIT"
+}

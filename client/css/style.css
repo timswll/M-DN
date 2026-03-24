@@ -619,18 +619,43 @@ img {
   transition: background-color 0.2s;
 }
 
-.player-info-item.current-turn {
+.player-info-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+  transition: background-color 0.2s;
+}
+
+.player-info-item.current-turn,
+.player-info-entry.active-player {
   background-color: color-mix(in srgb, var(--btn-primary-bg) 15%, transparent);
   border: 1px solid var(--btn-primary-bg);
 }
 
-.player-info-item .player-color-dot {
+.player-info-item .player-color-dot,
+.player-info-entry .player-color-dot {
   width: 12px;
   height: 12px;
 }
 
-.player-info-item .player-name {
+.player-info-item .player-name,
+.player-info-entry .player-info-name {
   font-size: clamp(0.8rem, 1.8vw, 0.95rem);
+}
+
+.player-info-name.is-self,
+.player-name.is-self {
+  font-weight: 700;
+  color: var(--btn-primary-bg);
+}
+
+.home-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .player-pieces-count {
@@ -649,6 +674,11 @@ img {
   box-shadow: var(--shadow);
   border: 1px solid var(--border-color);
   font-size: clamp(0.85rem, 2vw, 1rem);
+}
+
+.turn-indicator.turn-self {
+  border-color: var(--player-green);
+  background-color: color-mix(in srgb, var(--player-green) 10%, var(--bg-card));
 }
 
 /* ----- Dice ----- */
@@ -670,12 +700,12 @@ img {
   background-color: var(--cell-bg);
   border: 2px solid var(--cell-border);
   border-radius: 12px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  padding: 15%;
-  gap: 4%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(2rem, 5vw, 3rem);
   transition: transform 0.15s;
+  user-select: none;
 }
 
 .dice.clickable {
@@ -698,6 +728,10 @@ img {
   50%  { transform: rotate(-8deg) scale(0.95); }
   75%  { transform: rotate(6deg) scale(1.03); }
   100% { transform: rotate(0deg) scale(1); }
+}
+
+.dice-spin {
+  animation: dice-shake 0.4s ease-in-out;
 }
 
 .dice-dot {
@@ -873,6 +907,23 @@ img {
   align-items: center;
   gap: 0.4rem;
   margin-top: 1rem;
+}
+
+/* Center cell of the board */
+.board-cell.center {
+  background-color: var(--board-bg);
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  border: none;
+}
+
+/* Pulse animation for roll button */
+.btn.pulse {
+  animation: btn-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0); }
 }
 
 /* ============================================================

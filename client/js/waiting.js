@@ -54,12 +54,10 @@ const Waiting = (() => {
   const handleGameState = (state) => {
     if (!state || !state.players) return;
 
-    // Determine if current user is the creator (first player)
+    // Determine if current user is the creator
     const myId = socket.id;
     const myStoredId = gameInfo.playerId;
-    const firstPlayer = state.players[0];
-    isCreator = firstPlayer &&
-      (firstPlayer.id === myId || firstPlayer.id === myStoredId);
+    isCreator = state.creatorId === myId || state.creatorId === myStoredId;
 
     renderPlayerList(state.players, myId, myStoredId);
     updateStartButton(state.players.length);
