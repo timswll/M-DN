@@ -586,11 +586,9 @@ const Game = (() => {
     socket.on('player-left', onPlayerLeft);
     socket.on('error', onError);
 
-    // Request current state
-    socket.emit('reconnect-game', {
-      gameId: gameInfo.gameId,
-      playerId: gameInfo.playerId
-    });
+    // socket-manager already emits reconnect-game on connect for game/waiting pages
+    // Re-read gameInfo in case it was updated by socket-manager
+    gameInfo = SocketManager.getGameInfo();
   };
 
   return { init };

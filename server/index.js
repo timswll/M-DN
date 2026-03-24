@@ -22,6 +22,10 @@ app.use('/api', apiRouter);
 // socketId -> { gameId, playerIndex }
 const socketMap = new Map();
 
+// Grace period timers for disconnections during page navigation
+// playerId -> timeoutId
+const disconnectTimers = new Map();
+
 /**
  * Find the player index for a socket inside a game.
  */
@@ -215,6 +219,16 @@ io.on('connection', (socket) => {
       const playerIndex = game.players.findIndex((p) => p.id === data.playerId);
       if (playerIndex === -1) throw new Error('Player not found in this game');
 
+      // Cancel any pending disconnect timer for the old socket
+      const oldTimer = disconnectTimers.get(data.playerId);
+      if (oldTimer) {
+        clearTimeout(oldTimer);
+        disconnectTimers.delete(data.playerId);
+      }
+
+      // Clean up old socket mapping
+      socketMap.delete(data.playerId);
+
       // Update player socket id
       game.players[playerIndex].id = socket.id;
       if (game.creatorId === data.playerId) {
@@ -235,7 +249,13 @@ io.on('connection', (socket) => {
     console.log(`Socket disconnected: ${socket.id}`);
     const entry = socketMap.get(socket.id);
     if (entry) {
-      handleLeave(socket, entry.gameId);
+      // Grace period: wait 5 seconds before removing player
+      // This allows page navigation (lobby -> waiting -> game) without losing game state
+      const timer = setTimeout(() => {
+        disconnectTimers.delete(socket.id);
+        handleLeave(socket, entry.gameId);
+      }, 5000);
+      disconnectTimers.set(socket.id, timer);
     }
   });
 });

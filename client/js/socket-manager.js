@@ -20,12 +20,20 @@ const SocketManager = (() => {
       console.log('Connected to server:', socket.id);
       reconnectAttempts = 0;
 
-      const savedGame = JSON.parse(localStorage.getItem('currentGame') || 'null');
-      if (savedGame) {
-        socket.emit('reconnect-game', {
-          gameId: savedGame.gameId,
-          playerId: savedGame.playerId
-        });
+      // Auto-reconnect only on game/waiting pages (not lobby)
+      const page = window.location.pathname;
+      const isGamePage = page.includes('game.html') || page.includes('waiting.html');
+      if (isGamePage) {
+        const savedGame = JSON.parse(localStorage.getItem('currentGame') || 'null');
+        if (savedGame) {
+          socket.emit('reconnect-game', {
+            gameId: savedGame.gameId,
+            playerId: savedGame.playerId
+          });
+          // Update stored playerId to new socket id after reconnect
+          savedGame.playerId = socket.id;
+          localStorage.setItem('currentGame', JSON.stringify(savedGame));
+        }
       }
     });
 

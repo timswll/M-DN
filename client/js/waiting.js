@@ -44,11 +44,9 @@ const Waiting = (() => {
     socket.on('game-started', handleGameStarted);
     socket.on('error', handleError);
 
-    // Request current game state
-    socket.emit('reconnect-game', {
-      gameId: gameInfo.gameId,
-      playerId: gameInfo.playerId
-    });
+    // socket-manager already emits reconnect-game on connect for waiting/game pages
+    // Re-read gameInfo in case it was updated by socket-manager
+    gameInfo = SocketManager.getGameInfo();
   };
 
   const handleGameState = (state) => {
@@ -129,23 +127,20 @@ const Waiting = (() => {
   const handlePlayerJoined = (data) => {
     const name = (data.player && data.player.name) || 'Ein Spieler';
     Utils.showStatus('status-message', `${name} ist beigetreten!`);
-    // Request updated state
-    socket.emit('reconnect-game', {
-      gameId: gameInfo.gameId,
-      playerId: gameInfo.playerId
-    });
+    // Use the players list from the event directly
+    if (data.players) {
+      const myId = socket.id;
+      const myStoredId = gameInfo ? gameInfo.playerId : null;
+      renderPlayerList(data.players, myId, myStoredId);
+      updateStartButton(data.players.length);
+      updateStatus(data.players.length);
+    }
   };
 
   const handlePlayerLeft = (data) => {
     Utils.showStatus('status-message', 'Ein Spieler hat das Spiel verlassen.');
-    // Use the state included in the event to refresh the list
     if (data.state) {
       handleGameState(data.state);
-    } else {
-      socket.emit('reconnect-game', {
-        gameId: gameInfo.gameId,
-        playerId: gameInfo.playerId
-      });
     }
   };
 
