@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MÄDN – Warteraum</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
+    <div class="navbar-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+    </div>
+  </nav>
+  <div class="nav-spacer"></div>
+
+  <main class="waiting-container">
+    <h1>Warteraum</h1>
+
+    <section class="game-code-section card">
+      <p>Teile diesen Code mit deinen Freunden:</p>
+      <div class="game-code">
+        <span class="game-code-value" id="game-code-value">------</span>
+        <button class="copy-btn" id="copy-code-btn" aria-label="Code kopieren" title="Code kopieren">📋</button>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="mb-1">Spieler</h2>
+      <ul class="player-list" id="player-list">
+        <!-- Populated dynamically -->
+      </ul>
+    </section>
+
+    <p class="status-message" id="status-message">Warte auf weitere Spieler…</p>
+
+    <div class="waiting-actions">
+      <button class="btn btn-primary btn-large" id="start-game-btn">🚀 Spiel Starten</button>
+      <button class="btn btn-danger" id="leave-game-btn">Verlassen</button>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/socket-manager.js"></script>
+  <script src="js/waiting.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
