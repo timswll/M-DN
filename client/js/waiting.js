@@ -82,7 +82,7 @@ const Waiting = (() => {
       li.className = 'player-list-item';
 
       const dot = document.createElement('span');
-      dot.className = `player-color-dot color-${player.color}`;
+      dot.className = `player-color-dot ${player.color}`;
       li.appendChild(dot);
 
       const nameSpan = document.createElement('span');
@@ -129,7 +129,8 @@ const Waiting = (() => {
   };
 
   const handlePlayerJoined = (data) => {
-    Utils.showStatus('status-message', `${data.playerName || 'Ein Spieler'} ist beigetreten!`);
+    const name = (data.player && data.player.name) || 'Ein Spieler';
+    Utils.showStatus('status-message', `${name} ist beigetreten!`);
     // Request updated state
     socket.emit('reconnect-game', {
       gameId: gameInfo.gameId,
@@ -138,11 +139,16 @@ const Waiting = (() => {
   };
 
   const handlePlayerLeft = (data) => {
-    Utils.showStatus('status-message', `${data.playerName || 'Ein Spieler'} hat das Spiel verlassen.`);
-    socket.emit('reconnect-game', {
-      gameId: gameInfo.gameId,
-      playerId: gameInfo.playerId
-    });
+    Utils.showStatus('status-message', 'Ein Spieler hat das Spiel verlassen.');
+    // Use the state included in the event to refresh the list
+    if (data.state) {
+      handleGameState(data.state);
+    } else {
+      socket.emit('reconnect-game', {
+        gameId: gameInfo.gameId,
+        playerId: gameInfo.playerId
+      });
+    }
   };
 
   const handleGameStarted = () => {

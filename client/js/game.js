@@ -119,31 +119,31 @@ const Game = (() => {
     for (let row = 0; row < 11; row++) {
       for (let col = 0; col < 11; col++) {
         const cell = document.createElement('div');
-        cell.className = 'cell';
+        cell.className = 'board-cell';
         cell.dataset.row = row;
         cell.dataset.col = col;
 
         const info = cellLookup.get(`${row},${col}`);
 
         if (!info) {
-          cell.classList.add('cell-empty');
+          cell.classList.add('empty');
         } else if (info.type === 'path') {
-          cell.classList.add('cell-path');
+          cell.classList.add('path');
           cell.dataset.pathPos = info.index;
           if (info.startColor) {
-            cell.classList.add(`cell-start-${info.startColor}`);
+            cell.classList.add(`start-${info.startColor}`);
             cell.dataset.start = info.startColor;
           }
         } else if (info.type === 'base') {
-          cell.classList.add('cell-base', `cell-base-${info.color}`);
+          cell.classList.add(`base-${info.color}`);
           cell.dataset.baseColor = info.color;
           cell.dataset.baseIndex = info.index;
         } else if (info.type === 'home') {
-          cell.classList.add('cell-home', `cell-home-${info.color}`);
+          cell.classList.add(`home-${info.color}`);
           cell.dataset.homeColor = info.color;
           cell.dataset.homeIndex = info.index;
         } else if (info.type === 'center') {
-          cell.classList.add('cell-center');
+          cell.classList.add('center');
           cell.textContent = '🎲';
         }
 
@@ -181,7 +181,7 @@ const Game = (() => {
         if (!cell) return;
 
         const pieceEl = document.createElement('div');
-        pieceEl.className = `piece piece-${player.color}`;
+        pieceEl.className = `piece ${player.color}`;
         pieceEl.dataset.playerColor = player.color;
         pieceEl.dataset.pieceIndex = pieceIdx;
 
@@ -234,7 +234,7 @@ const Game = (() => {
     }
 
     return document.querySelector(
-      `.cell[data-row="${row}"][data-col="${col}"]`
+      `.board-cell[data-row="${row}"][data-col="${col}"]`
     );
   };
 
@@ -264,7 +264,7 @@ const Game = (() => {
       }
 
       const dot = document.createElement('span');
-      dot.className = `player-color-dot color-${player.color}`;
+      dot.className = `player-color-dot ${player.color}`;
       div.appendChild(dot);
 
       const name = document.createElement('span');
@@ -468,27 +468,33 @@ const Game = (() => {
     if (data.state) {
       renderGameState(data.state);
     }
-    const mover = data.playerName || 'Ein Spieler';
+    const moverPlayer = data.state && data.state.players
+      ? data.state.players[data.playerIndex]
+      : null;
+    const mover = moverPlayer ? moverPlayer.name : 'Ein Spieler';
     addLogEntry(`${mover} hat eine Figur bewegt`);
 
     if (data.captured) {
-      const capturedName = data.capturedPlayerName || 'einen Spieler';
+      const capturedName = data.captured.playerName || 'einen Spieler';
       addLogEntry(`${mover} hat ${capturedName} geschlagen!`);
     }
   };
 
   const onTurnChanged = (data) => {
     validMoves = [];
-    if (gameState && data.currentPlayerIndex !== undefined) {
+    // Server sends full game state for turn-changed
+    if (data && data.players) {
+      gameState = data;
+    } else if (gameState && data.currentPlayerIndex !== undefined) {
       gameState.currentPlayerIndex = data.currentPlayerIndex;
       gameState.diceValue = null;
       gameState.diceRolled = false;
     }
-    const currentPlayer = gameState
-      ? gameState.players[data.currentPlayerIndex]
-      : null;
-    if (currentPlayer) {
-      addLogEntry(`${currentPlayer.name} ist am Zug`);
+    if (gameState) {
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (currentPlayer) {
+        addLogEntry(`${currentPlayer.name} ist am Zug`);
+      }
     }
     renderTurnIndicator();
     renderDice();
@@ -502,7 +508,8 @@ const Game = (() => {
     const countdownEl = document.getElementById('winner-countdown');
     if (!overlay || !nameEl) return;
 
-    const winnerName = data.winnerName || data.winner || 'Unbekannt';
+    const winnerName = (data.winner && data.winner.name) || 'Unbekannt';
+    const winnerColor = (data.winner && data.winner.color) || '';
     nameEl.textContent = winnerName;
     overlay.classList.add('visible');
 
