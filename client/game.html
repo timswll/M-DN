@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MÄDN – Spiel</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
+    <div class="navbar-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+    </div>
+  </nav>
+  <div class="nav-spacer"></div>
+
+  <main class="game-layout">
+    <div class="game-content">
+
+      <!-- Board -->
+      <div class="board-container">
+        <div class="game-board" id="game-board">
+          <!-- 11×11 cells rendered by game.js -->
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="game-sidebar">
+
+        <div class="turn-indicator" id="turn-indicator">Warte auf Spielbeginn…</div>
+
+        <div class="player-info-panel">
+          <h3>Spieler</h3>
+          <div id="player-info-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="dice-container">
+          <div class="dice" id="dice">🎲</div>
+          <span class="dice-value-text" id="dice-value-text"></span>
+          <button class="btn btn-primary" id="roll-dice-btn" disabled>🎲 Würfeln</button>
+        </div>
+
+        <div class="game-log">
+          <h3>Spielverlauf</h3>
+          <ul class="game-log-list" id="game-log-list">
+            <li>Spiel geladen…</li>
+          </ul>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Winner overlay -->
+  <div class="winner-overlay" id="winner-overlay">
+    <div class="winner-card">
+      <h2>🏆 Spielende!</h2>
+      <p class="winner-name" id="winner-name"></p>
+      <p class="winner-message">hat das Spiel gewonnen!</p>
+      <p class="winner-countdown" id="winner-countdown"></p>
+      <a href="index.html" class="btn btn-primary">🏠 Zurück zur Startseite</a>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/socket-manager.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

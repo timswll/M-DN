@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MÄDN – Lobby</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
+    <div class="navbar-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+    </div>
+  </nav>
+  <div class="nav-spacer"></div>
+
+  <main class="lobby-container">
+    <section class="lobby-name-section card">
+      <div class="form-group">
+        <label for="player-name">Spielername</label>
+        <input type="text" id="player-name" class="form-input" placeholder="Dein Name eingeben…" maxlength="20" required>
+      </div>
+    </section>
+
+    <div class="lobby-cards container-wrap">
+      <div class="card">
+        <h2>🆕 Neues Spiel erstellen</h2>
+        <p class="mb-2">Erstelle ein neues Spiel und lade deine Freunde ein.</p>
+        <button class="btn btn-primary" id="create-game-btn">Erstellen</button>
+      </div>
+
+      <div class="card">
+        <h2>🔗 Spiel beitreten</h2>
+        <p class="mb-1">Gib den Spielcode ein, um einem Spiel beizutreten.</p>
+        <div class="form-group">
+          <label for="game-id-input">Spielcode</label>
+          <input type="text" id="game-id-input" class="form-input" placeholder="z.&thinsp;B. ABC123" maxlength="6">
+        </div>
+        <button class="btn btn-primary" id="join-game-btn">Beitreten</button>
+      </div>
+    </div>
+
+    <div class="error-message" id="error-message"></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/socket-manager.js"></script>
+  <script src="js/lobby.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
