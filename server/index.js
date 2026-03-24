@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
         validMoves,
         playerId: socket.id,
         rollAttempts: game.rollAttempts,
-        canRollAgain: !game.diceRolled, // if diceRolled is false the player gets another attempt
+        canRollAgain: !game.diceRolled, // true when all pieces in base and player has remaining attempts
       });
 
       // Auto-advance if no valid moves
