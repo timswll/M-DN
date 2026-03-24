@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cd server && node index.js",
     "install-server": "cd server && npm install",
-    "dev": "cd server && node --watch index.js"
+    "dev": "cd server && node --watch index.js",
+    "test": "cd server && npx jest --forceExit --detectOpenHandles"
   },
   "keywords": ["board-game", "multiplayer", "socket.io"],
   "license": "MIT"

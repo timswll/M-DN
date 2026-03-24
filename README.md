@@ -7,6 +7,7 @@ Webbasierte Multiplayer-Umsetzung von „Mensch ärgere dich nicht" mit Echtzeit
 - [Features](#features)
 - [Technologie-Stack](#technologie-stack)
 - [Installation & Start](#installation--start)
+- [Tests](#tests)
 - [Projektstruktur](#projektstruktur)
 - [HTTP API-Spezifikation](#http-api-spezifikation)
 - [WebSocket Events (Socket.io)](#websocket-events-socketio)
@@ -100,6 +101,29 @@ nohup npm start > server.log 2>&1 &
 
 Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 
+## Tests
+
+Das Projekt nutzt [Jest](https://jestjs.io/) als Test-Framework. Die Tests decken Spiellogik, Eingabevalidierung und die REST-API ab.
+
+### Tests ausführen
+
+```bash
+# Aus dem Projektverzeichnis:
+npm test
+
+# Oder direkt aus dem server-Verzeichnis:
+cd server
+npm test
+```
+
+### Was wird getestet?
+
+| Datei                            | Beschreibung                                                     |
+| -------------------------------- | ---------------------------------------------------------------- |
+| `server/__tests__/gameLogic.test.js`  | Spiellogik: Erstellen, Beitreten, Würfeln, Züge, Capture, Gewinnbedingung |
+| `server/__tests__/validation.test.js` | Eingabevalidierung: Spielernamen, Game-IDs, Zugvalidierung        |
+| `server/__tests__/api.test.js`        | REST-API: Health-Check, Spiel erstellen/auflisten/abfragen        |
+
 ## Projektstruktur
 
 ```
@@ -109,6 +133,10 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 │   ├── validation.js      # Eingabevalidierung, Middleware, Cheat Prevention
 │   ├── routes/
 │   │   └── api.js         # REST API Routen
+│   ├── __tests__/
+│   │   ├── gameLogic.test.js  # Tests: Spiellogik
+│   │   ├── validation.test.js # Tests: Eingabevalidierung
+│   │   └── api.test.js        # Tests: REST API
 │   └── package.json       # Server-Abhängigkeiten
 ├── client/
 │   ├── index.html         # Startseite
