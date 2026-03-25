@@ -99,12 +99,6 @@ io.on('connection', (socket) => {
       game.startGame();
 
       io.to(game.id).emit('game-started', game.getState());
-
-      // Update socketMap indices after shuffle
-      game.players.forEach((p, i) => {
-        const entry = socketMap.get(p.id);
-        if (entry) entry.playerIndex = i;
-      });
     } catch (err) {
       socket.emit('error', { message: err.message });
     }
@@ -131,7 +125,8 @@ io.on('connection', (socket) => {
         validMoves,
         playerId: socket.id,
         rollAttempts: game.rollAttempts,
-        canRollAgain: !game.diceRolled, // true when all pieces in base and player has remaining attempts
+        canRollAgain: !game.diceRolled,
+        state: game.getState(),
       });
 
       // Auto-advance if no valid moves
@@ -139,11 +134,6 @@ io.on('connection', (socket) => {
       const noMoves = validMoves.length === 0;
 
       if (noMoves) {
-        const shouldAdvance =
-          (allInBase && (value === 6 || game.rollAttempts >= 3)) ||
-          (!allInBase && value !== 6) ||
-          (!allInBase && value === 6);
-
         // If there are still roll attempts left (all-in-base, non-6), don't advance yet
         if (allInBase && value !== 6 && game.rollAttempts < 3) {
           // Player still has attempts — diceRolled is already false
@@ -244,6 +234,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Get game state ────────────────────────────────────────────────
+  socket.on('get-game-state', (data, callback) => {
+    if (typeof callback !== 'function') return;
+
+    const gameId = data?.gameId || socketMap.get(socket.id)?.gameId;
+    const game = gameId ? games.get(gameId) : null;
+    callback(game ? game.getState() : null);
+  });
+
   // ── Disconnect ────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
@@ -268,6 +267,7 @@ function handleLeave(socket, gameId) {
   const game = games.get(gameId);
   if (!game) return;
 
+  const leavingPlayer = game.players.find((player) => player.id === socket.id) || null;
   game.removePlayer(socket.id);
   socket.leave(gameId);
   socketMap.delete(socket.id);
@@ -277,8 +277,16 @@ function handleLeave(socket, gameId) {
   } else {
     io.to(gameId).emit('player-left', {
       playerId: socket.id,
+      playerName: leavingPlayer ? leavingPlayer.name : null,
       state: game.getState(),
     });
+
+    if (game.status === 'finished' && game.winner) {
+      io.to(gameId).emit('game-over', {
+        winner: { name: game.winner.name, color: game.winner.color },
+        state: game.getState(),
+      });
+    }
   }
 }
 

@@ -54,6 +54,20 @@ const SocketManager = (() => {
       console.error('Server error:', data.message);
     });
 
+    socket.on('room-full', () => {
+      const errorMessage = document.createElement('div');
+      errorMessage.textContent = '❌ Der Raum ist voll!';
+      errorMessage.style.color = 'red';
+      errorMessage.style.fontWeight = 'bold';
+      errorMessage.style.marginTop = '10px';
+      errorMessage.style.textAlign = 'center';
+
+      const joinButton = document.getElementById('join-game-btn');
+      if (joinButton) {
+        joinButton.parentElement.appendChild(errorMessage);
+      }
+    });
+
     return socket;
   };
 

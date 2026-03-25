@@ -101,7 +101,7 @@ const Waiting = (() => {
     if (!startBtn) return;
 
     if (isCreator) {
-      startBtn.style.display = '';
+      startBtn.style.display = 'inline-flex';
       startBtn.disabled = playerCount < 2;
       startBtn.title = playerCount < 2
         ? 'Mindestens 2 Spieler benötigt'
@@ -138,7 +138,8 @@ const Waiting = (() => {
   };
 
   const handlePlayerLeft = (data) => {
-    Utils.showStatus('status-message', 'Ein Spieler hat das Spiel verlassen.');
+    const name = data.playerName || 'Ein Spieler';
+    Utils.showStatus('status-message', `${name} hat die Lobby verlassen.`);
     if (data.state) {
       handleGameState(data.state);
     }

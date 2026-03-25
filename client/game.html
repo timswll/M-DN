@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,67 +7,71 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-  <nav class="navbar">
-    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
-    <div class="navbar-actions">
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+  <nav class="site-nav">
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">◈</span>
+      <span>MÄDN</span>
+    </a>
+    <div class="nav-links">
+      <a href="lobby.html">Lobby</a>
+      <a href="about.html#rules">Regeln</a>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
   </nav>
   <div class="nav-spacer"></div>
 
-  <main class="game-layout">
-    <div class="game-content">
+  <main class="shell page-stack game-shell">
+    <section class="game-header">
+      <div class="header">
+        <h1 class="gradient-title">Mensch Ärgere Dich Nicht</h1>
+        <div class="subtitle">Power Edition</div>
+      </div>
+    </section>
 
-      <!-- Board -->
-      <div class="board-container">
-        <div class="game-board" id="game-board">
-          <!-- 11×11 cells rendered by game.js -->
+    <section class="status-bar">
+      <div class="turn-indicator-wrap">
+        <div class="turn-dot" id="turn-dot"></div>
+        <span id="turn-indicator">Warte auf Spielbeginn…</span>
+      </div>
+      <div class="status-info" id="status-info">Spielstatus wird geladen</div>
+    </section>
+
+    <section class="board-wrapper">
+      <div class="board game-board" id="game-board" aria-label="Spielbrett"></div>
+    </section>
+
+    <section class="dice-area">
+      <div class="dice-container">
+        <div class="dice" id="dice" title="Würfeln">
+          <div class="dice-face" data-value="1"><div class="pip"></div></div>
         </div>
       </div>
+      <button class="roll-btn" id="roll-dice-btn" disabled>Würfeln</button>
+      <div class="dice-value-text" id="dice-value-text"></div>
+    </section>
 
-      <!-- Sidebar -->
-      <aside class="game-sidebar">
+    <section class="players-bar" id="player-info-list" aria-label="Spielerübersicht"></section>
 
-        <div class="turn-indicator" id="turn-indicator">Warte auf Spielbeginn…</div>
-
-        <div class="player-info-panel">
-          <h3>Spieler</h3>
-          <div id="player-info-list">
-            <!-- Populated dynamically -->
-          </div>
-        </div>
-
-        <div class="dice-container">
-          <div class="dice" id="dice">🎲</div>
-          <span class="dice-value-text" id="dice-value-text"></span>
-          <button class="btn btn-primary" id="roll-dice-btn" disabled>🎲 Würfeln</button>
-        </div>
-
-        <div class="game-log">
-          <h3>Spielverlauf</h3>
-          <ul class="game-log-list" id="game-log-list">
-            <li>Spiel geladen…</li>
-          </ul>
-        </div>
-      </aside>
-
-    </div>
+    <section class="game-log" aria-live="polite">
+      <div class="game-log-title">Spielverlauf</div>
+      <div class="game-log-list" id="game-log-list">
+        <div class="log-entry">Spiel geladen…</div>
+      </div>
+    </section>
   </main>
 
-  <!-- Winner overlay -->
   <div class="winner-overlay" id="winner-overlay">
     <div class="winner-card">
-      <h2>🏆 Spielende!</h2>
-      <p class="winner-name" id="winner-name"></p>
-      <p class="winner-message">hat das Spiel gewonnen!</p>
-      <p class="winner-countdown" id="winner-countdown"></p>
-      <a href="index.html" class="btn btn-primary">🏠 Zurück zur Startseite</a>
+      <div class="winner-trophy">🏆</div>
+      <h2>Spiel gewonnen</h2>
+      <p id="winner-name"></p>
+      <p id="winner-countdown"></p>
+      <a href="index.html" class="btn btn-primary">Zurück zur Startseite</a>
     </div>
   </div>
 
   <footer class="site-footer">
-    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+    <p>&copy; 2026 Mensch Ärgere Dich Nicht Online</p>
   </footer>
 
   <script src="/socket.io/socket.io.js"></script>

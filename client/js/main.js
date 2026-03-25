@@ -1,33 +1,35 @@
 'use strict';
 
-// Theme management
 const ThemeManager = (() => {
   const THEME_KEY = 'maedn-theme';
 
-  const getTheme = () => localStorage.getItem(THEME_KEY) || 'light';
+  const getTheme = () => 'dark';
 
-  const setTheme = (theme) => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, theme);
-    updateToggleButton(theme);
+  const setTheme = (theme = 'dark') => {
+    const nextTheme = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem(THEME_KEY, nextTheme);
+    updateToggleButton(nextTheme);
   };
 
   const toggle = () => {
-    const current = getTheme();
-    setTheme(current === 'light' ? 'dark' : 'light');
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    setTheme(current === 'dark' ? 'light' : 'dark');
   };
 
   const updateToggleButton = (theme) => {
     const btn = document.getElementById('theme-toggle');
-    if (btn) {
-      btn.textContent = theme === 'light' ? '🌙' : '☀️';
-      btn.setAttribute('aria-label', theme === 'light' ? 'Dark mode' : 'Light mode');
-    }
+    if (!btn) return;
+
+    btn.textContent = theme === 'dark' ? '☀' : '☾';
+    btn.setAttribute(
+      'aria-label',
+      theme === 'dark' ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren'
+    );
   };
 
   const init = () => {
-    const theme = getTheme();
-    setTheme(theme);
+    setTheme(getTheme());
 
     const btn = document.getElementById('theme-toggle');
     if (btn) {
@@ -38,7 +40,6 @@ const ThemeManager = (() => {
   return { init, toggle, getTheme, setTheme };
 })();
 
-// Player info management
 const PlayerInfo = (() => {
   const KEY = 'maedn-player';
 
@@ -48,15 +49,18 @@ const PlayerInfo = (() => {
   return { getName, setName };
 })();
 
-// Utility functions
 const Utils = (() => {
+  let errorTimer = null;
+
   const showError = (containerId, message) => {
     const el = document.getElementById(containerId);
-    if (el) {
-      el.textContent = message;
-      el.classList.add('visible');
-      setTimeout(() => el.classList.remove('visible'), 5000);
-    }
+    if (!el) return;
+
+    el.textContent = message;
+    el.classList.add('visible');
+
+    if (errorTimer) clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => el.classList.remove('visible'), 5000);
   };
 
   const showStatus = (containerId, message) => {
@@ -67,14 +71,18 @@ const Utils = (() => {
   };
 
   const formatPlayerColor = (color) => {
-    const colors = { red: 'Rot', blue: 'Blau', green: 'Grün', yellow: 'Gelb' };
+    const colors = {
+      green: 'Grün',
+      red: 'Rot',
+      blue: 'Blau',
+      yellow: 'Gelb'
+    };
     return colors[color] || color;
   };
 
   return { showError, showStatus, formatPlayerColor };
 })();
 
-// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   ThemeManager.init();
 });

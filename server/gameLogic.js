@@ -7,7 +7,7 @@
  *  - Start positions: P0=0, P1=10, P2=20, P3=30
  */
 
-const COLORS = ['red', 'blue', 'green', 'yellow'];
+const COLORS = ['green', 'red', 'blue', 'yellow'];
 const BOARD_SIZE = 40;
 const PIECES_PER_PLAYER = 4;
 
@@ -117,17 +117,13 @@ class Game {
     if (this.players.length < 2) {
       throw new Error('Need at least 2 players to start');
     }
-    // Randomise turn order
-    for (let i = this.players.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.players[i], this.players[j]] = [this.players[j], this.players[i]];
-    }
-    // Re-assign colours after shuffle to match board positions
+
+    // Keep colour-to-board mapping stable and only randomise the starting player.
     this.players.forEach((p, i) => {
       p.color = COLORS[i];
     });
     this.status = 'playing';
-    this.currentPlayerIndex = 0;
+    this.currentPlayerIndex = Math.floor(Math.random() * this.players.length);
     this.diceRolled = false;
     this.diceValue = null;
     this.rollAttempts = 0;
@@ -235,9 +231,22 @@ class Game {
       }
     }
 
-    // If a piece is in base and the start position is occupied by own piece,
-    // prioritise moving that piece off start when rolling a 6.
-    // (Standard rule: you MUST move out of base if possible.)
+    if (dice === 6) {
+      const hasBasePiece = player.pieces.some((piece) => piece.isBase);
+      const startPos = this._startPosition(playerIndex);
+      const movableStartPiece = moves.filter((moveIndex) => {
+        const piece = player.pieces[moveIndex];
+        return !piece.isBase && !piece.isHome && piece.position === startPos;
+      });
+
+      if (hasBasePiece && !this._ownPieceAt(playerIndex, startPos)) {
+        return moves.filter((moveIndex) => player.pieces[moveIndex].isBase);
+      }
+
+      if (hasBasePiece && movableStartPiece.length > 0) {
+        return movableStartPiece;
+      }
+    }
 
     return moves;
   }

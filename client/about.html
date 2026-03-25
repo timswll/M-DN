@@ -1,96 +1,87 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MÄDN – Spielregeln &amp; Über uns</title>
+  <title>MÄDN – Regeln &amp; Projekt</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-  <nav class="navbar">
-    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
-    <div class="navbar-actions">
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+  <nav class="site-nav">
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">◈</span>
+      <span>MÄDN</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Start</a>
+      <a href="lobby.html">Lobby</a>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
   </nav>
   <div class="nav-spacer"></div>
 
-  <main class="about-container">
-    <h1>Mensch Ärgere Dich Nicht</h1>
-
-    <section id="rules">
-      <h2>📖 Spielregeln</h2>
-
-      <h3>Ziel des Spiels</h3>
-      <p>
-        Jeder Spieler muss seine vier Spielfiguren von der Startposition aus über das Spielfeld in
-        die eigenen Zielfelder (das „Haus") bringen. Wer als Erster alle vier Figuren im Haus hat,
-        gewinnt.
-      </p>
-
-      <h3>Spielvorbereitung</h3>
-      <p>
-        Es können 2 bis 4 Spieler teilnehmen. Jeder Spieler bekommt vier Figuren in einer Farbe
-        (Rot, Blau, Grün oder Gelb), die zu Beginn auf den eigenen Startfeldern stehen.
-      </p>
-
-      <h3>Spielablauf</h3>
-      <ol>
-        <li>Die Spieler würfeln reihum. Wer dran ist, würfelt einmal.</li>
-        <li>
-          <strong>Figur ins Spiel bringen:</strong> Eine Figur kann nur mit einer gewürfelten 6 auf
-          das Startfeld gestellt werden. Solange alle Figuren im Haus stehen, darf der Spieler bis
-          zu dreimal würfeln.
-        </li>
-        <li>
-          <strong>Ziehen:</strong> Die gewürfelte Augenzahl bestimmt, wie viele Felder eine Figur
-          vorrückt.
-        </li>
-        <li>
-          <strong>Schlagen:</strong> Landet eine Figur auf einem Feld, das bereits von einer
-          gegnerischen Figur besetzt ist, wird die gegnerische Figur zurück auf ihre Startposition
-          geschickt.
-        </li>
-        <li>
-          <strong>Sechs gewürfelt:</strong> Wer eine 6 würfelt, darf nach seinem Zug erneut
-          würfeln.
-        </li>
-        <li>
-          <strong>Zielfelder:</strong> Die Zielfelder können nur über den eigenen Eingang betreten
-          werden. Im Zielbereich darf nicht übersprungen werden.
-        </li>
-      </ol>
-
-      <h3>Spielende</h3>
-      <p>
-        Das Spiel endet, sobald ein Spieler alle vier Figuren sicher in die eigenen Zielfelder
-        gebracht hat. Dieser Spieler gewinnt das Spiel.
+  <main class="shell page-stack">
+    <section class="glass-card page-hero">
+      <p class="eyebrow">Info</p>
+      <h1 class="gradient-title">Spielregeln und Projekt</h1>
+      <p class="page-copy">
+        Alles Wichtige zu Ablauf, Siegbedingung und technischer Umsetzung in einer kompakten
+        Übersicht.
       </p>
     </section>
 
-    <section id="about">
-      <h2>ℹ️ Über dieses Projekt</h2>
-      <p>
-        Diese Online-Version von <em>Mensch Ärgere Dich Nicht</em> wurde als Web-Projekt
-        entwickelt. Das Spiel nutzt moderne Web-Technologien:
-      </p>
-      <ul>
-        <li><strong>Frontend:</strong> HTML5, CSS3 (Container Queries, Custom Properties), Vanilla JavaScript</li>
-        <li><strong>Backend:</strong> Node.js mit Express und Socket.io für Echtzeit-Kommunikation</li>
-        <li><strong>Responsive Design:</strong> Spielbar auf Desktop, Tablet und Smartphone</li>
-      </ul>
-      <p>
-        Das Spiel unterstützt 2–4 Spieler, die gleichzeitig über das Internet miteinander spielen
-        können. Erstelle einfach ein Spiel, teile den Code und los geht's!
-      </p>
-    </section>
+    <section class="panel-grid about-grid">
+      <article class="glass-card prose-card" id="rules">
+        <p class="section-title">Spielregeln</p>
+        <h2>Ziel</h2>
+        <p>
+          Bringe alle vier Figuren vom Startbereich sicher in die eigene Ziellinie. Wer zuerst alle
+          Figuren im Ziel hat, gewinnt die Partie.
+        </p>
 
-    <a href="index.html" class="back-link">← Zurück zur Startseite</a>
+        <h2>Grundregeln</h2>
+        <ol>
+          <li>Es spielen 2 bis 4 Personen mit je vier Figuren.</li>
+          <li>Eine 6 bringt eine Figur aus dem Haus auf das Startfeld.</li>
+          <li>Stehen noch alle Figuren im Haus, darf ein Spieler bis zu dreimal auf eine 6 würfeln.</li>
+          <li>Die gewürfelte Zahl bestimmt exakt die Schrittweite einer Figur.</li>
+          <li>Landest du auf einer gegnerischen Figur, wird sie zurück ins Haus geschickt.</li>
+          <li>Mit einer 6 erhältst du nach einem gültigen Zug einen weiteren Wurf.</li>
+          <li>Die Zielfelder dürfen nicht übersprungen oder mit einer eigenen Figur blockiert werden.</li>
+        </ol>
+
+        <h2>Spielende</h2>
+        <p>
+          Das Spiel endet sofort, sobald ein Spieler vier Figuren im Zielbereich untergebracht hat.
+        </p>
+      </article>
+
+      <article class="glass-card prose-card" id="about">
+        <p class="section-title">Projekt</p>
+        <h2>Technik</h2>
+        <ul>
+          <li>Frontend mit HTML, CSS und Vanilla JavaScript</li>
+          <li>Backend mit Node.js, Express und Socket.io</li>
+          <li>Responsive Umsetzung für Desktop, Tablet und Smartphone</li>
+        </ul>
+
+        <h2>Umsetzung</h2>
+        <p>
+          Würfelwürfe, Züge und Schlagregeln werden serverseitig validiert. Das verhindert lokale
+          Manipulation und hält alle Clients in einem konsistenten Spielzustand.
+        </p>
+
+        <h2>Designbasis</h2>
+        <p>
+          Das finale Layout orientiert sich an der hochgeladenen „Power Edition“-Referenz mit
+          dunklem Neon-Hintergrund, Glasflächen und leuchtenden Spielfiguren.
+        </p>
+      </article>
+    </section>
   </main>
 
   <footer class="site-footer">
-    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+    <p>&copy; 2026 Mensch Ärgere Dich Nicht Online</p>
   </footer>
 
   <script src="js/main.js"></script>

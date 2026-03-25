@@ -1,55 +1,61 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MÄDN – Warteraum</title>
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    /* Sicherstellen, dass der Button sichtbar ist */
-    #start-game-btn {
-      display: block !important;
-    }
-  </style>
-  </head>
+</head>
 <body>
-
-  <nav class="navbar">
-    <a href="index.html" class="navbar-brand">🎲 MÄDN</a>
-    <div class="navbar-actions">
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀️</button>
+  <nav class="site-nav">
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">◈</span>
+      <span>MÄDN</span>
+    </a>
+    <div class="nav-links">
+      <a href="lobby.html">Lobby</a>
+      <a href="about.html#rules">Regeln</a>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
   </nav>
   <div class="nav-spacer"></div>
 
-  <main class="waiting-container">
-    <h1>Warteraum</h1>
-
-    <section class="game-code-section card">
-      <p>Teile diesen Code mit deinen Freunden:</p>
-      <div class="game-code">
-        <span class="game-code-value" id="game-code-value">------</span>
-        <button class="copy-btn" id="copy-code-btn" aria-label="Code kopieren" title="Code kopieren">📋</button>
-      </div>
+  <main class="shell page-stack">
+    <section class="glass-card page-hero">
+      <p class="eyebrow">Warteraum</p>
+      <h1 class="gradient-title">Spieler sammeln</h1>
+      <p class="page-copy">
+        Teile den Code, warte auf mindestens einen weiteren Spieler und starte dann die Partie.
+      </p>
     </section>
 
-    <section>
-      <h2 class="mb-1">Spieler</h2>
-      <ul class="player-list" id="player-list">
-        <!-- Populated dynamically -->
-      </ul>
+    <section class="waiting-grid">
+      <article class="glass-card">
+        <p class="section-title">Spielcode</p>
+        <div class="game-code">
+          <span class="game-code-value" id="game-code-value">------</span>
+          <button class="copy-btn" id="copy-code-btn" aria-label="Code kopieren" title="Code kopieren">⧉</button>
+        </div>
+      </article>
+
+      <article class="glass-card waiting-actions-card">
+        <p class="section-title">Status</p>
+        <p class="status-message" id="status-message">Warte auf weitere Spieler…</p>
+        <div class="waiting-actions">
+          <button class="btn btn-primary btn-large" id="start-game-btn">Spiel starten</button>
+          <button class="btn btn-danger" id="leave-game-btn">Lobby verlassen</button>
+        </div>
+      </article>
     </section>
 
-    <p class="status-message" id="status-message">Warte auf weitere Spieler…</p>
-
-    <div class="waiting-actions">
-      <button class="btn btn-primary btn-large" id="start-game-btn">🚀 Spiel Starten</button>
-      <button class="btn btn-danger" id="leave-game-btn">Verlassen</button>
-    </div>
+    <section class="glass-card">
+      <p class="section-title">Spieler</p>
+      <ul class="player-list" id="player-list"></ul>
+    </section>
   </main>
 
   <footer class="site-footer">
-    <p>&copy; 2025 Mensch Ärgere Dich Nicht Online</p>
+    <p>&copy; 2026 Mensch Ärgere Dich Nicht Online</p>
   </footer>
 
   <script src="/socket.io/socket.io.js"></script>
