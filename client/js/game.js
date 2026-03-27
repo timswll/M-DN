@@ -1,5 +1,5 @@
 'use strict';
-
+//Neuer Stand: 2024-06-01
 const Game = (() => {
   const PATH_COORDS = [
     [0, 4], [1, 4], [2, 4], [3, 4], [4, 4],
