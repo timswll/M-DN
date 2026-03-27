@@ -1,4 +1,4 @@
-# MOnline Multiplayer
+# Online Multiplayer
 
 Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheating. Mehrere Spielräume ermöglichen parallele Partien mit 2–4 Spielern.
 
