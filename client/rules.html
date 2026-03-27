@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MÄDN – Regeln</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="site-nav">
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">◈</span>
+      <span>MÄDN</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Start</a>
+      <a href="about.html">Projekt</a>
+      <a href="lobby.html">Lobby</a>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
+    </div>
+  </nav>
+  <div class="nav-spacer"></div>
+
+  <main class="shell page-stack">
+    <section class="glass-card page-hero">
+      <p class="eyebrow">Regeln</p>
+      <h1 class="gradient-title">Spielregeln und Superfelder</h1>
+      <p class="page-copy">
+        Hier findest du die Grundregeln, die Sonderfelder und die zentralen Spezialmechaniken des
+        Spiels auf einer eigenen Seite.
+      </p>
+    </section>
+
+    <section class="page-stack">
+      <article class="glass-card prose-card">
+        <p class="section-title">Grundregeln</p>
+        <h2>Ziel</h2>
+        <p>
+          Bringe alle vier Figuren vom Startbereich sicher in die eigene Ziellinie. Wer zuerst alle
+          Figuren im Ziel hat, gewinnt die Partie.
+        </p>
+
+        <h2>Ablauf</h2>
+        <ol>
+          <li>Es spielen 2 bis 4 Personen mit je vier Figuren.</li>
+          <li>Eine 6 bringt eine Figur aus dem Haus auf das Startfeld.</li>
+          <li>Stehen noch alle Figuren im Haus, darf ein Spieler bis zu dreimal auf eine 6 würfeln.</li>
+          <li>Die gewürfelte Zahl bestimmt exakt die Schrittweite einer Figur.</li>
+          <li>Landest du auf einer gegnerischen Figur auf einem normalen Feld, wird sie zurück ins Haus geschickt.</li>
+          <li>Mit einer 6 erhältst du nach einem gültigen Zug einen weiteren Wurf.</li>
+          <li>Die Zielfelder dürfen nicht übersprungen oder mit einer eigenen Figur blockiert werden.</li>
+        </ol>
+
+        <h2>Spielende</h2>
+        <p>
+          Das Spiel endet sofort, sobald ein Spieler vier Figuren im Zielbereich untergebracht hat.
+        </p>
+      </article>
+
+      <article class="glass-card prose-card">
+        <p class="section-title">Superfelder</p>
+        <div class="superfields-grid">
+          <article class="superfield-card risk">
+            <div class="superfield-icon">?</div>
+            <h3>Risiko-Feld</h3>
+            <p>
+              Bei Landung würfelst du sofort erneut. Eine 1 schickt die Figur zurück ins Haus, eine
+              2 oder 3 bewegt sie rückwärts und eine 4, 5 oder 6 vorwärts.
+            </p>
+          </article>
+
+          <article class="superfield-card shield">
+            <div class="superfield-icon">S</div>
+            <h3>Schutzfeld</h3>
+            <p>
+              Figuren auf einem Schutzfeld können nicht geschmissen werden. Gegner dürfen dieses
+              Feld auch nicht als Zielfeld verwenden.
+            </p>
+          </article>
+
+          <article class="superfield-card swap">
+            <div class="superfield-icon">⇄</div>
+            <h3>Tausch-Feld</h3>
+            <p>
+              Bei Landung darfst du deine aktive Figur mit einer beliebigen gegnerischen Figur auf
+              dem Hauptpfad tauschen. Figuren im Haus oder Ziel sind ausgeschlossen.
+            </p>
+          </article>
+
+          <article class="superfield-card extra">
+            <div class="superfield-icon">+1</div>
+            <h3>Extra Wurf-Feld</h3>
+            <p>
+              Wenn du auf diesem Feld landest, bekommst du unmittelbar einen weiteren Wurf.
+            </p>
+          </article>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Mensch Ärgere Dich Nicht Online</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

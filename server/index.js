@@ -25,12 +25,182 @@ const socketMap = new Map();
 // Grace period timers for disconnections during page navigation
 // playerId -> timeoutId
 const disconnectTimers = new Map();
+const botTimers = new Map();
+const BOT_ACTION_DELAY_MS = 900;
 
 /**
  * Find the player index for a socket inside a game.
  */
 const findPlayerIndex = (game, socketId) =>
   game.players.findIndex((p) => p.id === socketId);
+
+const clearBotTimer = (gameId) => {
+  const timer = botTimers.get(gameId);
+  if (timer) {
+    clearTimeout(timer);
+    botTimers.delete(gameId);
+  }
+};
+
+const emitGameOver = (game) => {
+  clearBotTimer(game.id);
+  io.to(game.id).emit('game-over', {
+    winner: { name: game.winner.name, color: game.winner.color },
+    state: game.getState(),
+  });
+};
+
+const maybeScheduleBotTurn = (game, delay = BOT_ACTION_DELAY_MS) => {
+  clearBotTimer(game.id);
+
+  if (!game || game.status !== 'playing') {
+    return;
+  }
+
+  const currentPlayer = game.players[game.currentPlayerIndex];
+  if (!currentPlayer || !currentPlayer.isBot) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    botTimers.delete(game.id);
+    runBotTurn(game.id);
+  }, delay);
+
+  botTimers.set(game.id, timer);
+};
+
+const resetForExtraTurn = (game) => {
+  game.diceRolled = false;
+  game.diceValue = null;
+  game.rollAttempts = 0;
+};
+
+const applyTurnTransition = (game, extraTurn = false) => {
+  if (game.status === 'finished') {
+    emitGameOver(game);
+    return;
+  }
+
+  if (game.diceValue === 6 || extraTurn) {
+    resetForExtraTurn(game);
+    io.to(game.id).emit('game-state', game.getState());
+  } else {
+    game.nextTurn();
+    io.to(game.id).emit('turn-changed', game.getState());
+  }
+
+  maybeScheduleBotTurn(game);
+};
+
+const resolveBotSwap = (game) => {
+  const playerIndex = game.currentPlayerIndex;
+  const botPlayer = game.players[playerIndex];
+  const candidates = game.getSwapCandidates(playerIndex);
+
+  if (candidates.length === 0) {
+    game.pendingAction = null;
+    applyTurnTransition(game);
+    return;
+  }
+
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const swapResult = game.completeSwap(
+    playerIndex,
+    target.playerId,
+    target.pieceIndex
+  );
+
+  io.to(game.id).emit('swap-completed', {
+    ...swapResult,
+    state: game.getState(),
+  });
+
+  applyTurnTransition(game, false);
+  console.log(`Bot ${botPlayer.name} completed a swap in game ${game.id}`);
+};
+
+const runBotTurn = (gameId) => {
+  const game = games.get(gameId);
+  if (!game || game.status !== 'playing') {
+    clearBotTimer(gameId);
+    return;
+  }
+
+  const playerIndex = game.currentPlayerIndex;
+  const botPlayer = game.players[playerIndex];
+  if (!botPlayer || !botPlayer.isBot) {
+    return;
+  }
+
+  if (game.pendingAction?.type === 'swap') {
+    resolveBotSwap(game);
+    return;
+  }
+
+  if (!game.diceRolled) {
+    const value = game.rollDice();
+    const validMoves = game.getValidMoves(playerIndex);
+
+    io.to(game.id).emit('dice-rolled', {
+      value,
+      validMoves,
+      playerId: botPlayer.id,
+      rollAttempts: game.rollAttempts,
+      canRollAgain: !game.diceRolled,
+      state: game.getState(),
+    });
+
+    const allInBase = game.allPiecesInBase(playerIndex);
+    const noMoves = validMoves.length === 0;
+
+    if (noMoves) {
+      if (allInBase && value !== 6 && game.rollAttempts < 3) {
+        maybeScheduleBotTurn(game);
+      } else {
+        game.nextTurn();
+        io.to(game.id).emit('turn-changed', game.getState());
+        maybeScheduleBotTurn(game);
+      }
+      return;
+    }
+
+    maybeScheduleBotTurn(game);
+    return;
+  }
+
+  const validMoves = game.getValidMoves(playerIndex);
+  if (validMoves.length === 0) {
+    game.nextTurn();
+    io.to(game.id).emit('turn-changed', game.getState());
+    maybeScheduleBotTurn(game);
+    return;
+  }
+
+  const pieceIndex = validMoves[Math.floor(Math.random() * validMoves.length)];
+  const moveOutcome = game.movePiece(playerIndex, pieceIndex);
+
+  io.to(game.id).emit('piece-moved', {
+    playerIndex,
+    pieceIndex,
+    captures: moveOutcome.captures,
+    effects: moveOutcome.effects,
+    pendingAction: moveOutcome.pendingAction,
+    state: game.getState(),
+  });
+
+  if (game.status === 'finished') {
+    emitGameOver(game);
+    return;
+  }
+
+  if (moveOutcome.pendingAction) {
+    maybeScheduleBotTurn(game);
+    return;
+  }
+
+  applyTurnTransition(game, moveOutcome.extraTurn);
+};
 
 // ── Socket.io handlers ────────────────────────────────────────────────
 io.on('connection', (socket) => {
@@ -95,10 +265,14 @@ io.on('connection', (socket) => {
       const game = games.get(data.gameId);
       if (!game) throw new Error('Game not found');
       if (game.creatorId !== socket.id) throw new Error('Only the game creator can start the game');
+      if (data?.fillWithBots) {
+        game.addBotPlayers();
+      }
 
       game.startGame();
 
       io.to(game.id).emit('game-started', game.getState());
+      maybeScheduleBotTurn(game);
     } catch (err) {
       socket.emit('error', { message: err.message });
     }
@@ -140,6 +314,7 @@ io.on('connection', (socket) => {
         } else {
           game.nextTurn();
           io.to(game.id).emit('turn-changed', game.getState());
+          maybeScheduleBotTurn(game);
         }
       }
     } catch (err) {
@@ -161,33 +336,57 @@ io.on('connection', (socket) => {
       const moveResult = validateMove(game, socket.id, data.pieceIndex, game.diceValue);
       if (!moveResult.valid) throw new Error(moveResult.reason);
 
-      const { captured } = game.movePiece(playerIndex, data.pieceIndex);
+      const moveOutcome = game.movePiece(playerIndex, data.pieceIndex);
 
       io.to(game.id).emit('piece-moved', {
         playerIndex,
         pieceIndex: data.pieceIndex,
-        captured,
+        captures: moveOutcome.captures,
+        effects: moveOutcome.effects,
+        pendingAction: moveOutcome.pendingAction,
         state: game.getState(),
       });
 
       if (game.status === 'finished') {
-        io.to(game.id).emit('game-over', {
-          winner: { name: game.winner.name, color: game.winner.color },
-          state: game.getState(),
-        });
+        emitGameOver(game);
         return;
       }
 
-      // Extra turn on 6
-      if (game.diceValue === 6) {
-        game.diceRolled = false;
-        game.diceValue = null;
-        game.rollAttempts = 0;
-        io.to(game.id).emit('game-state', game.getState());
-      } else {
-        game.nextTurn();
-        io.to(game.id).emit('turn-changed', game.getState());
+      if (moveOutcome.pendingAction) {
+        maybeScheduleBotTurn(game);
+        return;
       }
+
+      applyTurnTransition(game, moveOutcome.extraTurn);
+    } catch (err) {
+      socket.emit('error', { message: err.message });
+    }
+  });
+
+  // ── Complete swap action ──────────────────────────────────────────
+  socket.on('select-swap-target', (data) => {
+    try {
+      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
+      const game = games.get(data.gameId);
+      if (!game) throw new Error('Game not found');
+      if (game.status !== 'playing') throw new Error('Game is not in progress');
+
+      const playerIndex = findPlayerIndex(game, socket.id);
+      if (playerIndex === -1) throw new Error('You are not in this game');
+      if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
+
+      const swapResult = game.completeSwap(
+        playerIndex,
+        data.targetPlayerId,
+        data.targetPieceIndex
+      );
+
+      io.to(game.id).emit('swap-completed', {
+        ...swapResult,
+        state: game.getState(),
+      });
+
+      applyTurnTransition(game, false);
     } catch (err) {
       socket.emit('error', { message: err.message });
     }
@@ -273,6 +472,7 @@ function handleLeave(socket, gameId) {
   socketMap.delete(socket.id);
 
   if (game.players.length === 0) {
+    clearBotTimer(gameId);
     games.delete(gameId);
   } else {
     io.to(gameId).emit('player-left', {
@@ -282,10 +482,9 @@ function handleLeave(socket, gameId) {
     });
 
     if (game.status === 'finished' && game.winner) {
-      io.to(gameId).emit('game-over', {
-        winner: { name: game.winner.name, color: game.winner.color },
-        state: game.getState(),
-      });
+      emitGameOver(game);
+    } else {
+      maybeScheduleBotTurn(game);
     }
   }
 }

@@ -14,7 +14,8 @@
     </a>
     <div class="nav-links">
       <a href="lobby.html">Lobby</a>
-      <a href="about.html#rules">Regeln</a>
+      <a href="rules.html">Regeln</a>
+      <a href="about.html">Projekt</a>
       <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
   </nav>
@@ -28,35 +29,58 @@
       </div>
     </section>
 
-    <section class="status-bar">
-      <div class="turn-indicator-wrap">
-        <div class="turn-dot" id="turn-dot"></div>
-        <span id="turn-indicator">Warte auf Spielbeginn…</span>
-      </div>
-      <div class="status-info" id="status-info">Spielstatus wird geladen</div>
-    </section>
-
-    <section class="board-wrapper">
-      <div class="board game-board" id="game-board" aria-label="Spielbrett"></div>
-    </section>
-
-    <section class="dice-area">
-      <div class="dice-container">
-        <div class="dice" id="dice" title="Würfeln">
-          <div class="dice-face" data-value="1"><div class="pip"></div></div>
+    <section class="game-layout">
+      <aside class="glass-card game-sidebar game-sidebar-left">
+        <div class="game-panel-head">
+          <div>
+            <p class="section-title">Verlauf</p>
+            <h2 class="panel-title">Spiel läuft seit</h2>
+          </div>
+          <div class="game-timer" id="game-elapsed-time">00:00</div>
         </div>
-      </div>
-      <button class="roll-btn" id="roll-dice-btn" disabled>Würfeln</button>
-      <div class="dice-value-text" id="dice-value-text"></div>
-    </section>
 
-    <section class="players-bar" id="player-info-list" aria-label="Spielerübersicht"></section>
+        <section class="game-log" aria-live="polite">
+          <div class="game-log-title">Aktionen</div>
+          <div class="game-log-list" id="game-log-list">
+            <div class="log-entry">
+              <span class="log-time">00:00</span>
+              <span class="log-message">Spiel geladen…</span>
+            </div>
+          </div>
+        </section>
+      </aside>
 
-    <section class="game-log" aria-live="polite">
-      <div class="game-log-title">Spielverlauf</div>
-      <div class="game-log-list" id="game-log-list">
-        <div class="log-entry">Spiel geladen…</div>
-      </div>
+      <section class="game-board-column">
+        <section class="board-wrapper">
+          <div class="board game-board" id="game-board" aria-label="Spielbrett"></div>
+        </section>
+      </section>
+
+      <aside class="glass-card game-sidebar game-sidebar-right">
+        <section class="status-card">
+          <p class="section-title">Status</p>
+          <div class="turn-indicator-wrap">
+            <div class="turn-dot" id="turn-dot"></div>
+            <span id="turn-indicator">Warte auf Spielbeginn…</span>
+          </div>
+          <div class="status-info" id="status-info">Spielstatus wird geladen</div>
+        </section>
+
+        <section class="dice-area">
+          <div class="dice-container">
+            <div class="dice" id="dice" title="Würfeln">
+              <div class="dice-face" data-value="1"><div class="pip"></div></div>
+            </div>
+          </div>
+          <button class="roll-btn" id="roll-dice-btn" disabled>Würfeln</button>
+          <div class="dice-value-text" id="dice-value-text"></div>
+        </section>
+
+        <section class="players-panel">
+          <p class="section-title">Spieler</p>
+          <div class="players-bar" id="player-info-list" aria-label="Spielerübersicht"></div>
+        </section>
+      </aside>
     </section>
   </main>
 

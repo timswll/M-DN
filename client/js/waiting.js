@@ -28,8 +28,14 @@ const Waiting = (() => {
 
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) {
-      startBtn.addEventListener('click', handleStartGame);
+      startBtn.addEventListener('click', () => handleStartGame(false));
       startBtn.style.display = 'none';
+    }
+
+    const fillBotsBtn = document.getElementById('fill-bots-btn');
+    if (fillBotsBtn) {
+      fillBotsBtn.addEventListener('click', () => handleStartGame(true));
+      fillBotsBtn.style.display = 'none';
     }
 
     const leaveBtn = document.getElementById('leave-game-btn');
@@ -92,13 +98,22 @@ const Waiting = (() => {
       }
 
       li.appendChild(nameSpan);
+
+      if (player.isBot) {
+        const tag = document.createElement('span');
+        tag.className = 'player-tag';
+        tag.textContent = 'Bot';
+        li.appendChild(tag);
+      }
+
       listEl.appendChild(li);
     });
   };
 
   const updateStartButton = (playerCount) => {
     const startBtn = document.getElementById('start-game-btn');
-    if (!startBtn) return;
+    const fillBotsBtn = document.getElementById('fill-bots-btn');
+    if (!startBtn || !fillBotsBtn) return;
 
     if (isCreator) {
       startBtn.style.display = 'inline-flex';
@@ -106,8 +121,17 @@ const Waiting = (() => {
       startBtn.title = playerCount < 2
         ? 'Mindestens 2 Spieler benötigt'
         : 'Spiel starten';
+
+      if (playerCount < 4) {
+        fillBotsBtn.style.display = 'inline-flex';
+        fillBotsBtn.disabled = false;
+        fillBotsBtn.title = `${4 - playerCount} Bot${4 - playerCount === 1 ? '' : 's'} hinzufügen und starten`;
+      } else {
+        fillBotsBtn.style.display = 'none';
+      }
     } else {
       startBtn.style.display = 'none';
+      fillBotsBtn.style.display = 'none';
     }
   };
 
@@ -116,9 +140,13 @@ const Waiting = (() => {
     if (!statusEl) return;
 
     if (playerCount < 2) {
-      statusEl.textContent = 'Warte auf weitere Spieler…';
+      statusEl.textContent = isCreator
+        ? 'Warte auf weitere Spieler oder starte direkt mit Bots bis 4 Spieler.'
+        : 'Warte auf weitere Spieler…';
     } else if (isCreator) {
-      statusEl.textContent = `${playerCount} Spieler bereit. Du kannst das Spiel starten!`;
+      statusEl.textContent = playerCount < 4
+        ? `${playerCount} Spieler bereit. Du kannst normal starten oder bis 4 Spieler mit Bots auffüllen.`
+        : `${playerCount} Spieler bereit. Du kannst das Spiel starten!`;
     } else {
       statusEl.textContent = `${playerCount} Spieler bereit. Warte auf Spielstart…`;
     }
@@ -182,9 +210,12 @@ const Waiting = (() => {
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = (fillWithBots = false) => {
     if (!gameInfo) return;
-    socket.emit('start-game', { gameId: gameInfo.gameId });
+    socket.emit('start-game', {
+      gameId: gameInfo.gameId,
+      fillWithBots
+    });
   };
 
   const handleLeaveGame = () => {

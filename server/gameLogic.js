@@ -2,21 +2,55 @@
  * Core game engine for Mensch Ärgere Dich Nicht.
  *
  * Board layout:
- *  - 40 shared positions (0-39) in a clockwise circle
+ *  - 40 shared positions (0-39)
  *  - Each player has 4 base slots and 4 home slots
- *  - Start positions: P0=0, P1=10, P2=20, P3=30
+ *  - Main path now runs clockwise on the rendered board
  */
 
 const COLORS = ['green', 'red', 'blue', 'yellow'];
+const COLOR_START_POSITIONS = {
+  green: 0,
+  yellow: 10,
+  blue: 20,
+  red: 30,
+};
 const BOARD_SIZE = 40;
 const PIECES_PER_PLAYER = 4;
+
+const SUPER_FIELDS = [
+  {
+    type: 'extra_roll',
+    position: 3,
+    title: 'Extra Wurf-Feld',
+    description: 'Bei Landung bekommst du sofort einen weiteren Wurf.',
+  },
+  {
+    type: 'swap',
+    position: 13,
+    title: 'Tausch-Feld',
+    description: 'Bei Landung darfst du deine aktive Figur mit einer gegnerischen Brettfigur tauschen.',
+  },
+  {
+    type: 'shield',
+    position: 23,
+    title: 'Schutzfeld',
+    description: 'Figuren auf diesem Feld können nicht geschmissen werden.',
+  },
+  {
+    type: 'risk',
+    position: 33,
+    title: 'Risiko-Feld',
+    description: 'Du würfelst erneut: 1 zurück ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
+  },
+];
+
+const SUPER_FIELD_BY_POSITION = new Map(
+  SUPER_FIELDS.map((field) => [field.position, field])
+);
 
 /** Map of gameId -> Game */
 const games = new Map();
 
-/**
- * Generate a 6-character uppercase alphanumeric ID.
- */
 const generateId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let id = '';
@@ -26,28 +60,26 @@ const generateId = () => {
   return id;
 };
 
-/**
- * Create the initial pieces array for one player (all in base).
- */
 const createPieces = () =>
   Array.from({ length: PIECES_PER_PLAYER }, () => ({
-    position: -1,   // -1 means "in base"
+    position: -1,
     isHome: false,
     isBase: true,
     homePosition: -1,
   }));
 
+const createPlayer = (id, name, color, isBot = false) => ({
+  id,
+  name,
+  color,
+  isBot,
+  pieces: createPieces(),
+});
+
 class Game {
   constructor(creatorId, creatorName) {
     this.id = generateId();
-    this.players = [
-      {
-        id: creatorId,
-        name: creatorName,
-        color: COLORS[0],
-        pieces: createPieces(),
-      },
-    ];
+    this.players = [createPlayer(creatorId, creatorName, COLORS[0], false)];
     this.currentPlayerIndex = 0;
     this.diceValue = null;
     this.diceRolled = false;
@@ -56,11 +88,10 @@ class Game {
     this.maxPlayers = 4;
     this.rollAttempts = 0;
     this.creatorId = creatorId;
+    this.startedAt = null;
+    this.pendingAction = null;
+    this.botCount = 0;
   }
-
-  /* ------------------------------------------------------------------ */
-  /*  Player management                                                  */
-  /* ------------------------------------------------------------------ */
 
   addPlayer(socketId, name) {
     if (this.players.length >= this.maxPlayers) {
@@ -70,21 +101,30 @@ class Game {
       throw new Error('Game has already started');
     }
 
-    const player = {
-      id: socketId,
-      name,
-      color: COLORS[this.players.length],
-      pieces: createPieces(),
-    };
+    const player = createPlayer(socketId, name, COLORS[this.players.length], false);
     this.players.push(player);
     return player;
   }
 
+  addBotPlayers(targetCount = this.maxPlayers) {
+    if (this.status !== 'waiting') {
+      throw new Error('Bots can only be added before the game starts');
+    }
+
+    while (this.players.length < this.maxPlayers && this.players.length < targetCount) {
+      this.botCount += 1;
+      const botId = `bot:${this.id}:${this.botCount}`;
+      const botName = `Bot${this.botCount}`;
+      this.players.push(createPlayer(botId, botName, COLORS[this.players.length], true));
+    }
+  }
+
   removePlayer(socketId) {
-    const idx = this.players.findIndex((p) => p.id === socketId);
+    const idx = this.players.findIndex((player) => player.id === socketId);
     if (idx === -1) return;
 
     this.players.splice(idx, 1);
+    this.pendingAction = null;
 
     if (this.status === 'playing') {
       if (this.players.length < 2) {
@@ -92,7 +132,7 @@ class Game {
         this.winner = this.players[0] || null;
         return;
       }
-      // Adjust currentPlayerIndex after removal
+
       if (idx < this.currentPlayerIndex) {
         this.currentPlayerIndex--;
       } else if (idx === this.currentPlayerIndex) {
@@ -103,30 +143,27 @@ class Game {
       }
     }
 
-    // If creator left while waiting, assign new creator
     if (this.status === 'waiting' && this.players.length > 0) {
       this.creatorId = this.players[0].id;
     }
   }
-
-  /* ------------------------------------------------------------------ */
-  /*  Game flow                                                          */
-  /* ------------------------------------------------------------------ */
 
   startGame() {
     if (this.players.length < 2) {
       throw new Error('Need at least 2 players to start');
     }
 
-    // Keep colour-to-board mapping stable and only randomise the starting player.
-    this.players.forEach((p, i) => {
-      p.color = COLORS[i];
+    this.players.forEach((player, index) => {
+      player.color = COLORS[index];
     });
+
     this.status = 'playing';
     this.currentPlayerIndex = Math.floor(Math.random() * this.players.length);
     this.diceRolled = false;
     this.diceValue = null;
     this.rollAttempts = 0;
+    this.startedAt = Date.now();
+    this.pendingAction = null;
   }
 
   rollDice() {
@@ -134,12 +171,9 @@ class Game {
     this.diceValue = value;
     this.diceRolled = true;
 
-    const allInBase = this.allPiecesInBase(this.currentPlayerIndex);
-
-    if (allInBase) {
+    if (this.allPiecesInBase(this.currentPlayerIndex)) {
       this.rollAttempts++;
       if (value !== 6 && this.rollAttempts < 3) {
-        // Allow another roll attempt
         this.diceRolled = false;
       }
     }
@@ -147,220 +181,463 @@ class Game {
     return value;
   }
 
-  /* ------------------------------------------------------------------ */
-  /*  Move helpers                                                       */
-  /* ------------------------------------------------------------------ */
-
   allPiecesInBase(playerIndex) {
-    return this.players[playerIndex].pieces.every((p) => p.isBase);
-  }
-
-  _allPiecesInBaseOrHome(playerIndex) {
-    return this.players[playerIndex].pieces.every((p) => p.isBase || p.isHome);
+    return this.players[playerIndex].pieces.every((piece) => piece.isBase);
   }
 
   _startPosition(playerIndex) {
-    return playerIndex * 10;
+    const color = this.players[playerIndex]?.color;
+    return COLOR_START_POSITIONS[color];
   }
 
-  /**
-   * How many steps has a piece taken from its start position?
-   */
   _stepsFromStart(playerIndex, boardPosition) {
     const start = this._startPosition(playerIndex);
     return (boardPosition - start + BOARD_SIZE) % BOARD_SIZE;
   }
 
-  /**
-   * Return the list of piece indices that may legally move with the current dice.
-   */
-  getValidMoves(playerIndex) {
-    const player = this.players[playerIndex];
-    const dice = this.diceValue;
-    if (dice === null) return [];
-
-    const moves = [];
-
-    for (let i = 0; i < PIECES_PER_PLAYER; i++) {
-      const piece = player.pieces[i];
-
-      if (piece.isBase) {
-        // Can only leave base with a 6
-        if (dice === 6) {
-          const startPos = this._startPosition(playerIndex);
-          // Check own piece not already on start
-          if (!this._ownPieceAt(playerIndex, startPos)) {
-            moves.push(i);
-          }
-        }
-        continue;
-      }
-
-      if (piece.isHome) {
-        // Can move forward inside home if target slot is free, in range, and path clear
-        const newHome = piece.homePosition + dice;
-        if (
-          newHome < PIECES_PER_PLAYER &&
-          !this._ownPieceInHome(playerIndex, newHome) &&
-          !this._homePathBlocked(playerIndex, piece.homePosition, newHome)
-        ) {
-          moves.push(i);
-        }
-        continue;
-      }
-
-      // Piece is on the main board
-      const stepsFromStart = this._stepsFromStart(playerIndex, piece.position);
-      const newSteps = stepsFromStart + dice;
-
-      if (newSteps >= BOARD_SIZE) {
-        // Entering home
-        const homeSlot = newSteps - BOARD_SIZE;
-        if (homeSlot < PIECES_PER_PLAYER && !this._ownPieceInHome(playerIndex, homeSlot)) {
-          // Verify no own pieces blocking home path
-          if (!this._homePathBlocked(playerIndex, -1, homeSlot)) {
-            moves.push(i);
-          }
-        }
-      } else {
-        // Normal board move
-        const target = (piece.position + dice) % BOARD_SIZE;
-        if (!this._ownPieceAt(playerIndex, target)) {
-          moves.push(i);
-        }
-      }
-    }
-
-    if (dice === 6) {
-      const hasBasePiece = player.pieces.some((piece) => piece.isBase);
-      const startPos = this._startPosition(playerIndex);
-      const movableStartPiece = moves.filter((moveIndex) => {
-        const piece = player.pieces[moveIndex];
-        return !piece.isBase && !piece.isHome && piece.position === startPos;
-      });
-
-      if (hasBasePiece && !this._ownPieceAt(playerIndex, startPos)) {
-        return moves.filter((moveIndex) => player.pieces[moveIndex].isBase);
-      }
-
-      if (hasBasePiece && movableStartPiece.length > 0) {
-        return movableStartPiece;
-      }
-    }
-
-    return moves;
+  _fieldAt(boardPosition) {
+    return SUPER_FIELD_BY_POSITION.get(boardPosition) || null;
   }
 
-  _ownPieceAt(playerIndex, boardPos) {
-    return this.players[playerIndex].pieces.some(
-      (p) => !p.isBase && !p.isHome && p.position === boardPos
-    );
+  _isShieldField(boardPosition) {
+    return this._fieldAt(boardPosition)?.type === 'shield';
   }
 
-  _ownPieceInHome(playerIndex, homeSlot) {
-    return this.players[playerIndex].pieces.some(
-      (p) => p.isHome && p.homePosition === homeSlot
-    );
-  }
-
-  /**
-   * Check whether any own piece blocks the home corridor between current
-   * home position and target home position (exclusive of current, inclusive of target).
-   */
-  _homePathBlocked(playerIndex, fromSlot, targetSlot) {
-    for (let h = fromSlot + 1; h <= targetSlot; h++) {
-      if (this._ownPieceInHome(playerIndex, h)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  Execute move                                                       */
-  /* ------------------------------------------------------------------ */
-
-  movePiece(playerIndex, pieceIndex) {
-    const player = this.players[playerIndex];
-    const piece = player.pieces[pieceIndex];
-    const dice = this.diceValue;
-    let captured = null;
-
-    if (piece.isBase && dice === 6) {
-      // Move out of base to start position
-      const startPos = this._startPosition(playerIndex);
-      piece.isBase = false;
-      piece.position = startPos;
-      captured = this._captureAt(playerIndex, startPos);
-    } else if (piece.isHome) {
-      // Move within home
-      piece.homePosition += dice;
-    } else {
-      // Piece on main board
-      const stepsFromStart = this._stepsFromStart(playerIndex, piece.position);
-      const newSteps = stepsFromStart + dice;
-
-      if (newSteps >= BOARD_SIZE) {
-        // Enter home
-        piece.isHome = true;
-        piece.homePosition = newSteps - BOARD_SIZE;
-        piece.position = -1;
-      } else {
-        piece.position = (piece.position + dice) % BOARD_SIZE;
-        captured = this._captureAt(playerIndex, piece.position);
-      }
-    }
-
-    // Check for win
-    if (player.pieces.every((p) => p.isHome)) {
-      this.status = 'finished';
-      this.winner = player;
-    }
-
-    return { captured };
-  }
-
-  /**
-   * If an opponent piece is at `boardPos`, send it back to base.
-   * @returns captured player info or null
-   */
-  _captureAt(movingPlayerIndex, boardPos) {
-    for (let pi = 0; pi < this.players.length; pi++) {
-      if (pi === movingPlayerIndex) continue;
-      for (const p of this.players[pi].pieces) {
-        if (!p.isBase && !p.isHome && p.position === boardPos) {
-          p.isBase = true;
-          p.position = -1;
-          return { playerIndex: pi, playerName: this.players[pi].name };
+  _findBoardPiece(boardPosition) {
+    for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
+      const player = this.players[playerIndex];
+      for (let pieceIndex = 0; pieceIndex < player.pieces.length; pieceIndex++) {
+        const piece = player.pieces[pieceIndex];
+        if (!piece.isBase && !piece.isHome && piece.position === boardPosition) {
+          return { playerIndex, pieceIndex, piece };
         }
       }
     }
     return null;
   }
 
-  /* ------------------------------------------------------------------ */
-  /*  Turn management                                                    */
-  /* ------------------------------------------------------------------ */
+  _findOpponentBoardPiece(movingPlayerIndex, boardPosition) {
+    for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
+      if (playerIndex === movingPlayerIndex) continue;
+
+      const player = this.players[playerIndex];
+      for (let pieceIndex = 0; pieceIndex < player.pieces.length; pieceIndex++) {
+        const piece = player.pieces[pieceIndex];
+        if (!piece.isBase && !piece.isHome && piece.position === boardPosition) {
+          return { playerIndex, pieceIndex, piece };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  _isBoardDestinationBlocked(playerIndex, boardPosition) {
+    const occupant = this._findBoardPiece(boardPosition);
+    if (!occupant) return false;
+    if (occupant.playerIndex === playerIndex) return true;
+    return this._isShieldField(boardPosition);
+  }
+
+  _ownPieceInHome(playerIndex, homeSlot) {
+    return this.players[playerIndex].pieces.some(
+      (piece) => piece.isHome && piece.homePosition === homeSlot
+    );
+  }
+
+  _homePathBlocked(playerIndex, fromSlot, targetSlot) {
+    for (let slot = fromSlot + 1; slot <= targetSlot; slot++) {
+      if (this._ownPieceInHome(playerIndex, slot)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getValidMoves(playerIndex) {
+    const player = this.players[playerIndex];
+    const dice = this.diceValue;
+    if (dice === null || this.pendingAction) return [];
+
+    const moves = [];
+
+    for (let pieceIndex = 0; pieceIndex < PIECES_PER_PLAYER; pieceIndex++) {
+      const piece = player.pieces[pieceIndex];
+
+      if (piece.isBase) {
+        if (dice === 6) {
+          const startPosition = this._startPosition(playerIndex);
+          if (!this._isBoardDestinationBlocked(playerIndex, startPosition)) {
+            moves.push(pieceIndex);
+          }
+        }
+        continue;
+      }
+
+      if (piece.isHome) {
+        const newHome = piece.homePosition + dice;
+        if (
+          newHome < PIECES_PER_PLAYER &&
+          !this._ownPieceInHome(playerIndex, newHome) &&
+          !this._homePathBlocked(playerIndex, piece.homePosition, newHome)
+        ) {
+          moves.push(pieceIndex);
+        }
+        continue;
+      }
+
+      const stepsFromStart = this._stepsFromStart(playerIndex, piece.position);
+      const newSteps = stepsFromStart + dice;
+
+      if (newSteps >= BOARD_SIZE) {
+        const homeSlot = newSteps - BOARD_SIZE;
+        if (
+          homeSlot < PIECES_PER_PLAYER &&
+          !this._ownPieceInHome(playerIndex, homeSlot) &&
+          !this._homePathBlocked(playerIndex, -1, homeSlot)
+        ) {
+          moves.push(pieceIndex);
+        }
+        continue;
+      }
+
+      const target = (piece.position + dice) % BOARD_SIZE;
+      if (!this._isBoardDestinationBlocked(playerIndex, target)) {
+        moves.push(pieceIndex);
+      }
+    }
+
+    if (dice === 6) {
+      const hasBasePiece = player.pieces.some((piece) => piece.isBase);
+      const startPos = this._startPosition(playerIndex);
+      const movableStartPieces = moves.filter((moveIndex) => {
+        const piece = player.pieces[moveIndex];
+        return !piece.isBase && !piece.isHome && piece.position === startPos;
+      });
+
+      if (hasBasePiece && !this._findBoardPiece(startPos)) {
+        return moves.filter((moveIndex) => player.pieces[moveIndex].isBase);
+      }
+
+      if (hasBasePiece && movableStartPieces.length > 0) {
+        return movableStartPieces;
+      }
+    }
+
+    return moves;
+  }
+
+  _captureAt(movingPlayerIndex, boardPosition) {
+    if (this._isShieldField(boardPosition)) {
+      return null;
+    }
+
+    const occupant = this._findOpponentBoardPiece(movingPlayerIndex, boardPosition);
+    if (!occupant) {
+      return null;
+    }
+
+    occupant.piece.isBase = true;
+    occupant.piece.isHome = false;
+    occupant.piece.position = -1;
+    occupant.piece.homePosition = -1;
+
+    return {
+      playerIndex: occupant.playerIndex,
+      pieceIndex: occupant.pieceIndex,
+      playerName: this.players[occupant.playerIndex].name,
+      playerColor: this.players[occupant.playerIndex].color,
+    };
+  }
+
+  _movePieceOnBoard(playerIndex, piece, targetPosition) {
+    if (this._isBoardDestinationBlocked(playerIndex, targetPosition)) {
+      return { blocked: true, captured: null };
+    }
+
+    const captured = this._captureAt(playerIndex, targetPosition);
+    piece.position = targetPosition;
+    return {
+      blocked: false,
+      captured,
+    };
+  }
+
+  _swapCandidates(playerIndex) {
+    const candidates = [];
+
+    for (let otherIndex = 0; otherIndex < this.players.length; otherIndex++) {
+      if (otherIndex === playerIndex) continue;
+
+      const otherPlayer = this.players[otherIndex];
+      otherPlayer.pieces.forEach((piece, pieceIndex) => {
+        if (!piece.isBase && !piece.isHome) {
+          candidates.push({
+            playerIndex: otherIndex,
+            pieceIndex,
+            playerId: otherPlayer.id,
+          });
+        }
+      });
+    }
+
+    return candidates;
+  }
+
+  getSwapCandidates(playerIndex) {
+    return this._swapCandidates(playerIndex);
+  }
+
+  _resolveRiskField(playerIndex, piece) {
+    const riskRoll = Math.floor(Math.random() * 6) + 1;
+    const effects = [{
+      type: 'risk_roll',
+      roll: riskRoll,
+      message: `Risiko-Feld: Zusatzwurf ${riskRoll}.`,
+    }];
+
+    if (riskRoll === 1) {
+      piece.isBase = true;
+      piece.isHome = false;
+      piece.position = -1;
+      piece.homePosition = -1;
+      effects.push({
+        type: 'risk',
+        outcome: 'base',
+        roll: riskRoll,
+        message: 'Risiko-Feld: 1 gewürfelt, Figur geht zurück ins Haus.',
+      });
+      return { effects, captures: [] };
+    }
+
+    const direction = riskRoll <= 3 ? -1 : 1;
+    const targetPosition = (piece.position + direction * riskRoll + BOARD_SIZE) % BOARD_SIZE;
+    const relocation = this._movePieceOnBoard(playerIndex, piece, targetPosition);
+
+    if (relocation.blocked) {
+      effects.push({
+        type: 'risk',
+        outcome: 'blocked',
+        roll: riskRoll,
+        steps: riskRoll,
+        message: `Risiko-Feld: ${riskRoll} gewürfelt, Sonderbewegung war blockiert.`,
+      });
+      return { effects, captures: [] };
+    }
+
+    effects.push({
+      type: 'risk',
+      outcome: direction === -1 ? 'backward' : 'forward',
+      roll: riskRoll,
+      steps: riskRoll,
+      message: direction === -1
+        ? `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder zurück.`
+        : `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder vor.`,
+    });
+
+    return {
+      effects,
+      captures: relocation.captured ? [relocation.captured] : [],
+    };
+  }
+
+  _applyFieldEffects(playerIndex, pieceIndex) {
+    const player = this.players[playerIndex];
+    const piece = player.pieces[pieceIndex];
+
+    if (piece.isBase || piece.isHome) {
+      return { effects: [], captures: [], extraTurn: false, pendingAction: null };
+    }
+
+    const field = this._fieldAt(piece.position);
+    if (!field) {
+      return { effects: [], captures: [], extraTurn: false, pendingAction: null };
+    }
+
+    if (field.type === 'shield') {
+      return {
+        effects: [{
+          type: 'shield',
+          message: 'Schutzfeld: Diese Figur ist auf diesem Feld vor dem Schmeißen geschützt.',
+        }],
+        captures: [],
+        extraTurn: false,
+        pendingAction: null,
+      };
+    }
+
+    if (field.type === 'extra_roll') {
+      return {
+        effects: [{
+          type: 'extra_roll',
+          message: 'Extra Wurf-Feld: Du erhältst sofort einen weiteren Wurf.',
+        }],
+        captures: [],
+        extraTurn: true,
+        pendingAction: null,
+      };
+    }
+
+    if (field.type === 'swap') {
+      const candidates = this._swapCandidates(playerIndex);
+      if (candidates.length === 0) {
+        return {
+          effects: [{
+            type: 'swap_unavailable',
+            message: 'Tausch-Feld: Es gibt aktuell keine gegnerische Brettfigur zum Tauschen.',
+          }],
+          captures: [],
+          extraTurn: false,
+          pendingAction: null,
+        };
+      }
+
+      this.pendingAction = {
+        type: 'swap',
+        playerIndex,
+        pieceIndex,
+      };
+
+      return {
+        effects: [{
+          type: 'swap',
+          message: 'Tausch-Feld: Wähle eine gegnerische Figur auf dem Hauptpfad zum Tauschen.',
+        }],
+        captures: [],
+        extraTurn: false,
+        pendingAction: this.pendingAction,
+      };
+    }
+
+    if (field.type === 'risk') {
+      const riskResult = this._resolveRiskField(playerIndex, piece);
+      return {
+        effects: riskResult.effects,
+        captures: riskResult.captures,
+        extraTurn: false,
+        pendingAction: null,
+      };
+    }
+
+    return { effects: [], captures: [], extraTurn: false, pendingAction: null };
+  }
+
+  movePiece(playerIndex, pieceIndex) {
+    const player = this.players[playerIndex];
+    const piece = player.pieces[pieceIndex];
+    const dice = this.diceValue;
+    const captures = [];
+    const effects = [];
+    let extraTurn = false;
+
+    if (piece.isBase && dice === 6) {
+      const startPosition = this._startPosition(playerIndex);
+      const captured = this._captureAt(playerIndex, startPosition);
+      piece.isBase = false;
+      piece.position = startPosition;
+      if (captured) captures.push(captured);
+    } else if (piece.isHome) {
+      piece.homePosition += dice;
+    } else {
+      const stepsFromStart = this._stepsFromStart(playerIndex, piece.position);
+      const newSteps = stepsFromStart + dice;
+
+      if (newSteps >= BOARD_SIZE) {
+        piece.isHome = true;
+        piece.homePosition = newSteps - BOARD_SIZE;
+        piece.position = -1;
+      } else {
+        const targetPosition = (piece.position + dice) % BOARD_SIZE;
+        const captured = this._captureAt(playerIndex, targetPosition);
+        piece.position = targetPosition;
+        if (captured) captures.push(captured);
+      }
+    }
+
+    const fieldResolution = this._applyFieldEffects(playerIndex, pieceIndex);
+    effects.push(...fieldResolution.effects);
+    captures.push(...fieldResolution.captures);
+    extraTurn = fieldResolution.extraTurn;
+
+    if (player.pieces.every((playerPiece) => playerPiece.isHome)) {
+      this.status = 'finished';
+      this.winner = player;
+    }
+
+    return {
+      captures,
+      effects,
+      extraTurn,
+      pendingAction: fieldResolution.pendingAction,
+    };
+  }
+
+  completeSwap(playerIndex, targetPlayerId, targetPieceIndex) {
+    if (!this.pendingAction || this.pendingAction.type !== 'swap') {
+      throw new Error('No swap action is pending');
+    }
+    if (this.pendingAction.playerIndex !== playerIndex) {
+      throw new Error('Only the active player can complete the swap');
+    }
+
+    const sourcePlayer = this.players[playerIndex];
+    const sourcePiece = sourcePlayer.pieces[this.pendingAction.pieceIndex];
+    if (!sourcePiece || sourcePiece.isBase || sourcePiece.isHome) {
+      throw new Error('The active piece can no longer be swapped');
+    }
+
+    const targetPlayerIndex = this.players.findIndex((player) => player.id === targetPlayerId);
+    if (targetPlayerIndex === -1 || targetPlayerIndex === playerIndex) {
+      throw new Error('Invalid swap target');
+    }
+
+    const targetPlayer = this.players[targetPlayerIndex];
+    const targetPiece = targetPlayer.pieces[targetPieceIndex];
+    if (!targetPiece || targetPiece.isBase || targetPiece.isHome) {
+      throw new Error('The selected target cannot be swapped');
+    }
+
+    const sourcePieceIndex = this.pendingAction.pieceIndex;
+    const sourcePosition = sourcePiece.position;
+    sourcePiece.position = targetPiece.position;
+    targetPiece.position = sourcePosition;
+    this.pendingAction = null;
+
+    return {
+      sourcePlayerName: sourcePlayer.name,
+      sourcePlayerColor: sourcePlayer.color,
+      sourcePieceIndex,
+      targetPlayerName: targetPlayer.name,
+      targetPlayerColor: targetPlayer.color,
+      targetPieceIndex,
+    };
+  }
 
   nextTurn() {
     this.diceRolled = false;
     this.diceValue = null;
     this.rollAttempts = 0;
+    this.pendingAction = null;
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
   }
 
-  /* ------------------------------------------------------------------ */
-  /*  Serialisation                                                      */
-  /* ------------------------------------------------------------------ */
-
   getState() {
+    const pendingAction = this.pendingAction
+      ? {
+          type: this.pendingAction.type,
+          playerId: this.players[this.pendingAction.playerIndex]?.id || null,
+          pieceIndex: this.pendingAction.pieceIndex,
+        }
+      : null;
+
     return {
       id: this.id,
-      players: this.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        pieces: p.pieces.map((pc) => ({ ...pc })),
+      players: this.players.map((player) => ({
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        isBot: Boolean(player.isBot),
+        pieces: player.pieces.map((piece) => ({ ...piece })),
       })),
       currentPlayerIndex: this.currentPlayerIndex,
       diceValue: this.diceValue,
@@ -370,8 +647,10 @@ class Game {
       maxPlayers: this.maxPlayers,
       rollAttempts: this.rollAttempts,
       creatorId: this.creatorId,
+      startedAt: this.startedAt,
+      pendingAction,
     };
   }
 }
 
-module.exports = { Game, games, generateId };
+module.exports = { Game, games, generateId, SUPER_FIELDS };

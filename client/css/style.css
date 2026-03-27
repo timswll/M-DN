@@ -26,9 +26,9 @@
   --text-dim: #555570;
   --overlay-bg: rgba(7, 7, 11, 0.84);
   --shadow-glow: 0 0 80px rgba(0, 0, 0, 0.5);
-  --cell-size: 48px;
+  --cell-size: clamp(40px, 2.85vw, 48px);
   --gap: 3px;
-  --token-size: 32px;
+  --token-size: clamp(28px, 1.9vw, 32px);
 }
 
 [data-theme="light"] {
@@ -337,6 +337,59 @@ textarea {
   gap: 0.55rem;
 }
 
+.superfields-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 0.6rem;
+}
+
+.superfield-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.superfield-card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.superfield-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border: 1px solid currentColor;
+}
+
+.superfield-card.risk {
+  color: #ff6d7f;
+  box-shadow: inset 0 0 0 1px rgba(255, 23, 68, 0.08);
+}
+
+.superfield-card.shield {
+  color: #6cb7ff;
+  box-shadow: inset 0 0 0 1px rgba(41, 121, 255, 0.08);
+}
+
+.superfield-card.swap {
+  color: #ffb74d;
+  box-shadow: inset 0 0 0 1px rgba(255, 183, 77, 0.08);
+}
+
+.superfield-card.extra {
+  color: #65ef9f;
+  box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.08);
+}
+
 .form-group {
   display: grid;
   gap: 0.55rem;
@@ -434,6 +487,10 @@ textarea {
   display: none;
 }
 
+#fill-bots-btn {
+  display: none;
+}
+
 .player-list {
   list-style: none;
   display: grid;
@@ -474,11 +531,65 @@ textarea {
 }
 
 .game-shell {
-  justify-items: center;
+  width: min(1360px, calc(100% - 2rem));
+  align-items: stretch;
 }
 
-.game-shell > * {
-  width: min(100%, 760px);
+.game-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) max-content minmax(220px, 260px);
+  justify-content: center;
+  gap: clamp(1rem, 1.5vw, 1.35rem);
+  align-items: start;
+}
+
+.game-sidebar {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 260px;
+  min-height: 100%;
+}
+
+.game-sidebar-left {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.game-sidebar-right {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.game-panel-head,
+.status-card,
+.players-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.game-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.game-board-column {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
 }
 
 .header {
@@ -492,19 +603,6 @@ textarea {
   color: var(--text-dim);
   letter-spacing: 0.35em;
   text-transform: uppercase;
-}
-
-.status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.85rem 1.2rem;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  border-radius: 14px;
-  backdrop-filter: blur(20px);
-  flex-wrap: wrap;
 }
 
 .turn-indicator-wrap {
@@ -525,15 +623,17 @@ textarea {
 .status-info {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .board-wrapper {
-  width: fit-content;
-  max-width: 100%;
+  width: max-content;
+  max-width: none;
+  margin: 0 auto;
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
-  padding: 1.75rem;
+  padding: 1.4rem;
   backdrop-filter: blur(30px);
   box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -665,6 +765,104 @@ textarea {
 .cell.entry-blue::after { background: var(--blue); box-shadow: 0 0 6px var(--blue-glow); }
 .cell.entry-yellow::after { background: var(--yellow); box-shadow: 0 0 6px var(--yellow-glow); }
 
+.cell.super-field {
+  overflow: visible;
+  cursor: help;
+}
+
+.cell.super-field .super-badge {
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.cell.super-risk {
+  background: linear-gradient(135deg, rgba(255, 23, 68, 0.22), rgba(92, 10, 26, 0.92));
+  border-color: rgba(255, 23, 68, 0.45);
+  box-shadow: 0 0 14px rgba(255, 23, 68, 0.22);
+}
+
+.cell.super-risk .super-badge {
+  color: #ffd9de;
+  border: 1px solid rgba(255, 23, 68, 0.32);
+  background: rgba(255, 23, 68, 0.14);
+}
+
+.cell.super-shield {
+  background: linear-gradient(135deg, rgba(41, 121, 255, 0.2), rgba(13, 43, 107, 0.92));
+  border-color: rgba(41, 121, 255, 0.45);
+  box-shadow: 0 0 14px rgba(41, 121, 255, 0.2);
+}
+
+.cell.super-shield .super-badge {
+  color: #d5ebff;
+  border: 1px solid rgba(41, 121, 255, 0.32);
+  background: rgba(41, 121, 255, 0.16);
+}
+
+.cell.super-swap {
+  background: linear-gradient(135deg, rgba(255, 183, 77, 0.22), rgba(133, 71, 8, 0.92));
+  border-color: rgba(255, 183, 77, 0.45);
+  box-shadow: 0 0 14px rgba(255, 183, 77, 0.18);
+}
+
+.cell.super-swap .super-badge {
+  color: #fff1d5;
+  border: 1px solid rgba(255, 183, 77, 0.32);
+  background: rgba(255, 183, 77, 0.14);
+}
+
+.cell.super-extra_roll {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.22), rgba(0, 77, 37, 0.92));
+  border-color: rgba(0, 230, 118, 0.45);
+  box-shadow: 0 0 14px rgba(0, 230, 118, 0.18);
+}
+
+.cell.super-extra_roll .super-badge {
+  color: #d8ffe7;
+  border: 1px solid rgba(0, 230, 118, 0.32);
+  background: rgba(0, 230, 118, 0.14);
+}
+
+.cell-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translate(-50%, 8px);
+  width: max-content;
+  max-width: 220px;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(16, 16, 24, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+  color: var(--text-primary);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 30;
+}
+
+.cell-tooltip strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.cell.super-field:hover .cell-tooltip,
+.cell.super-field:focus-within .cell-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .token {
   width: var(--token-size);
   height: var(--token-size);
@@ -714,6 +912,11 @@ textarea {
   cursor: pointer;
 }
 
+.token.swap-target {
+  box-shadow: 0 0 18px rgba(255, 183, 77, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
 .token:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 3px;
@@ -745,11 +948,10 @@ textarea {
 }
 
 .dice-area {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  align-content: start;
 }
 
 .dice-container {
@@ -790,17 +992,18 @@ textarea {
 
 .dice-face {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 4px;
   width: 40px;
   height: 40px;
 }
 
-.dice-face[data-value="1"] { grid-template: 1fr / 1fr; place-items: center; }
-.dice-face[data-value="2"] { grid-template: 1fr 1fr / 1fr; }
-.dice-face[data-value="3"] { grid-template: 1fr 1fr 1fr / 1fr; }
-.dice-face[data-value="4"] { grid-template: 1fr 1fr / 1fr 1fr; place-items: center; }
-.dice-face[data-value="5"] { grid-template: 1fr 1fr 1fr / 1fr 1fr; place-items: center; }
-.dice-face[data-value="6"] { grid-template: 1fr 1fr 1fr / 1fr 1fr; place-items: center; }
+.pip-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .pip {
   width: 8px;
@@ -810,13 +1013,10 @@ textarea {
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
-.dice-face[data-value="1"] .pip { width: 10px; height: 10px; }
-.dice-face[data-value="2"] .pip:first-child { justify-self: end; }
-.dice-face[data-value="2"] .pip:last-child { justify-self: start; }
-.dice-face[data-value="3"] .pip:first-child { justify-self: end; }
-.dice-face[data-value="3"] .pip:nth-child(2) { justify-self: center; }
-.dice-face[data-value="3"] .pip:last-child { justify-self: start; }
-.dice-face[data-value="5"] .pip:nth-child(5) { grid-column: 1 / -1; justify-self: center; }
+.dice-face[data-value="1"] .pip {
+  width: 10px;
+  height: 10px;
+}
 
 .roll-btn {
   padding: 0.85rem 1.7rem;
@@ -847,13 +1047,13 @@ textarea {
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .players-bar {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 .player-panel {
@@ -903,13 +1103,12 @@ textarea {
 
 .game-log {
   max-width: 100%;
-  max-height: 180px;
+  min-height: 22rem;
+  max-height: 32rem;
   overflow-y: auto;
-  padding: 0.9rem 1rem;
+  padding: 0;
   background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  border: none;
   font-size: 0.78rem;
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-secondary);
@@ -930,7 +1129,7 @@ textarea {
 }
 
 .game-log-title {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.7rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -940,11 +1139,26 @@ textarea {
 
 .game-log-list {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.55rem;
 }
 
 .log-entry {
-  padding: 0.1rem 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  padding: 0.85rem 0.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-time {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.log-message {
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 .winner-overlay {
@@ -1006,6 +1220,17 @@ textarea {
   display: none !important;
 }
 
+@media (max-width: 1080px) {
+  .game-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .game-sidebar {
+    max-width: 640px;
+  }
+}
+
 @media (max-width: 700px) {
   :root {
     --cell-size: 34px;
@@ -1025,22 +1250,30 @@ textarea {
     display: none;
   }
 
+  .gradient-title {
+    font-size: 2rem;
+  }
+
   .board-wrapper {
     padding: 1rem;
     border-radius: 18px;
   }
 
-  .gradient-title {
-    font-size: 2rem;
+  .game-layout {
+    grid-template-columns: 1fr;
   }
 
   .player-panel {
-    min-width: 132px;
+    min-width: 100%;
     padding: 0.65rem 0.85rem;
   }
 
   .dice {
     width: 52px;
     height: 52px;
+  }
+
+  .game-log {
+    min-height: 16rem;
   }
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MÄDN – Regeln &amp; Projekt</title>
+  <title>MÄDN – Projekt</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,6 +14,7 @@
     </a>
     <div class="nav-links">
       <a href="index.html">Start</a>
+      <a href="rules.html">Regeln</a>
       <a href="lobby.html">Lobby</a>
       <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
@@ -22,60 +23,51 @@
 
   <main class="shell page-stack">
     <section class="glass-card page-hero">
-      <p class="eyebrow">Info</p>
-      <h1 class="gradient-title">Spielregeln und Projekt</h1>
+      <p class="eyebrow">Projekt</p>
+      <h1 class="gradient-title">Technik und Umsetzung</h1>
       <p class="page-copy">
-        Alles Wichtige zu Ablauf, Siegbedingung und technischer Umsetzung in einer kompakten
-        Übersicht.
+        Diese Seite beschreibt die technische Basis, die Spielarchitektur und die gestalterische
+        Richtung des Projekts getrennt von den Spielregeln.
       </p>
     </section>
 
-    <section class="panel-grid about-grid">
-      <article class="glass-card prose-card" id="rules">
-        <p class="section-title">Spielregeln</p>
-        <h2>Ziel</h2>
-        <p>
-          Bringe alle vier Figuren vom Startbereich sicher in die eigene Ziellinie. Wer zuerst alle
-          Figuren im Ziel hat, gewinnt die Partie.
-        </p>
-
-        <h2>Grundregeln</h2>
-        <ol>
-          <li>Es spielen 2 bis 4 Personen mit je vier Figuren.</li>
-          <li>Eine 6 bringt eine Figur aus dem Haus auf das Startfeld.</li>
-          <li>Stehen noch alle Figuren im Haus, darf ein Spieler bis zu dreimal auf eine 6 würfeln.</li>
-          <li>Die gewürfelte Zahl bestimmt exakt die Schrittweite einer Figur.</li>
-          <li>Landest du auf einer gegnerischen Figur, wird sie zurück ins Haus geschickt.</li>
-          <li>Mit einer 6 erhältst du nach einem gültigen Zug einen weiteren Wurf.</li>
-          <li>Die Zielfelder dürfen nicht übersprungen oder mit einer eigenen Figur blockiert werden.</li>
-        </ol>
-
-        <h2>Spielende</h2>
-        <p>
-          Das Spiel endet sofort, sobald ein Spieler vier Figuren im Zielbereich untergebracht hat.
-        </p>
-      </article>
-
-      <article class="glass-card prose-card" id="about">
-        <p class="section-title">Projekt</p>
-        <h2>Technik</h2>
+    <section class="panel-grid">
+      <article class="glass-card prose-card">
+        <p class="section-title">Technik</p>
+        <h2>Stack</h2>
         <ul>
           <li>Frontend mit HTML, CSS und Vanilla JavaScript</li>
           <li>Backend mit Node.js, Express und Socket.io</li>
-          <li>Responsive Umsetzung für Desktop, Tablet und Smartphone</li>
+          <li>Gemeinsamer Spielzustand über serverseitige Validierung</li>
         </ul>
 
-        <h2>Umsetzung</h2>
+        <h2>Spielablauf</h2>
         <p>
-          Würfelwürfe, Züge und Schlagregeln werden serverseitig validiert. Das verhindert lokale
-          Manipulation und hält alle Clients in einem konsistenten Spielzustand.
+          Würfelwürfe, Zugprüfung, Spezialfelder, Schlaglogik und Siegbedingungen laufen zentral auf
+          dem Server. So bleibt der Zustand für alle Clients konsistent.
+        </p>
+      </article>
+
+      <article class="glass-card prose-card">
+        <p class="section-title">Design</p>
+        <h2>Visuelle Richtung</h2>
+        <p>
+          Das Projekt orientiert sich an der hochgeladenen Power-Edition-Referenz mit dunklem
+          Hintergrund, Glasflächen, farbigen Akzenten und einem klar hervorgehobenen Spielfeld.
         </p>
 
-        <h2>Designbasis</h2>
+        <h2>Benutzeroberfläche</h2>
         <p>
-          Das finale Layout orientiert sich an der hochgeladenen „Power Edition“-Referenz mit
-          dunklem Neon-Hintergrund, Glasflächen und leuchtenden Spielfiguren.
+          Lobby, Warteraum, Regeln, Projektseite und Spielansicht wurden auf dieselbe visuelle
+          Sprache abgestimmt. Gleichzeitig bleibt das Board funktional im Mittelpunkt.
         </p>
+
+        <h2>Spielregeln</h2>
+        <p>
+          Die vollständigen Regeln und die Erklärung der Superfelder findest du auf der separaten
+          Regelseite.
+        </p>
+        <a href="rules.html" class="btn btn-secondary">Zur Regelseite</a>
       </article>
     </section>
   </main>
@@ -84,6 +76,11 @@
     <p>&copy; 2026 Mensch Ärgere Dich Nicht Online</p>
   </footer>
 
+  <script>
+    if (window.location.hash === '#rules') {
+      window.location.replace('rules.html');
+    }
+  </script>
   <script src="js/main.js"></script>
 </body>
 </html>

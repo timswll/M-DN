@@ -80,7 +80,7 @@ const validateMove = (gameState, playerId, pieceIndex, diceValue) => {
 
   // Calculate target position for the caller
   const piece = currentPlayer.pieces[pieceIndex];
-  const startPos = gameState.currentPlayerIndex * 10;
+  const startPos = gameState._startPosition(gameState.currentPlayerIndex);
   let targetPosition;
 
   if (piece.isBase && diceValue === 6) {
