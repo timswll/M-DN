@@ -1,6 +1,6 @@
-# Mensch Ärgere Dich Nicht – Online Multiplayer
+# MOnline Multiplayer
 
-Webbasierte Multiplayer-Umsetzung von „Mensch ärgere dich nicht" mit Echtzeit-Kommunikation über Socket.io. Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheating. Mehrere Spielräume ermöglichen parallele Partien mit 2–4 Spielern.
+Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheating. Mehrere Spielräume ermöglichen parallele Partien mit 2–4 Spielern.
 
 ## Inhaltsverzeichnis
 
