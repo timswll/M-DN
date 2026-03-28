@@ -492,6 +492,12 @@ function handleLeave(socket, gameId) {
 // ── Start server ───────────────────────────────────────────────────────
 const PORT = process.env.PORT || 8300;
 const HOST = process.env.HOST || '0.0.0.0';
-server.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-});
+
+/* istanbul ignore next */
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
+  });
+}
+
+module.exports = { app, server, io };
