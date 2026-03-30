@@ -602,12 +602,11 @@ const Game = (() => {
     const confirm = document.getElementById('game-warning-confirm');
     if (!warningOverlay || !title || !copy || !confirm) return;
 
+    closeGamePopups();
     pendingLeaveHref = href;
     title.textContent = `Zu ${label} wechseln?`;
     copy.textContent = `Wenn du jetzt zu "${label}" wechselst, verlässt du die laufende Partie und wirst aus dem aktuellen Spiel entfernt.`;
     confirm.textContent = `Weiter zu ${label}`;
-
-    closeGamePopups();
     warningOverlay.classList.add('visible');
     warningOverlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
