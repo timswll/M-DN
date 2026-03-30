@@ -40,7 +40,7 @@ const SUPER_FIELDS = [
     type: 'risk',
     position: 33,
     title: 'Risiko-Feld',
-    description: 'Du würfelst erneut: 1 zurück ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
+    description: 'Würfle einmal zusätzlich: 1 zurück ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
   },
 ];
 
@@ -91,6 +91,7 @@ class Game {
     this.startedAt = null;
     this.pendingAction = null;
     this.botCount = 0;
+    this.lastActionAt = null;
   }
 
   addPlayer(socketId, name) {
@@ -163,6 +164,7 @@ class Game {
     this.diceValue = null;
     this.rollAttempts = 0;
     this.startedAt = Date.now();
+    this.lastActionAt = this.startedAt;
     this.pendingAction = null;
   }
 
@@ -388,8 +390,7 @@ class Game {
     return this._swapCandidates(playerIndex);
   }
 
-  _resolveRiskField(playerIndex, piece) {
-    const riskRoll = Math.floor(Math.random() * 6) + 1;
+  _resolveRiskField(playerIndex, piece, riskRoll = Math.floor(Math.random() * 6) + 1) {
     const effects = [{
       type: 'risk_roll',
       roll: riskRoll,
@@ -510,12 +511,19 @@ class Game {
     }
 
     if (field.type === 'risk') {
-      const riskResult = this._resolveRiskField(playerIndex, piece);
       return {
-        effects: riskResult.effects,
-        captures: riskResult.captures,
+        effects: [{
+          type: 'risk',
+          outcome: 'pending',
+          message: 'Risiko-Feld: Würfle erneut, um die Sonderaktion auszulösen.',
+        }],
+        captures: [],
         extraTurn: false,
-        pendingAction: null,
+        pendingAction: {
+          type: 'risk_roll',
+          playerIndex,
+          pieceIndex,
+        },
       };
     }
 
@@ -569,6 +577,35 @@ class Game {
       effects,
       extraTurn,
       pendingAction: fieldResolution.pendingAction,
+    };
+  }
+
+  resolveRiskRoll(playerIndex) {
+    if (!this.pendingAction || this.pendingAction.type !== 'risk_roll') {
+      throw new Error('Kein Risiko-Wurf ist aktuell offen');
+    }
+
+    if (this.pendingAction.playerIndex !== playerIndex) {
+      throw new Error('Nur der aktive Spieler darf den Risiko-Wurf ausführen');
+    }
+
+    const pieceIndex = this.pendingAction.pieceIndex;
+    const player = this.players[playerIndex];
+    const piece = player?.pieces?.[pieceIndex];
+    if (!piece || piece.isBase || piece.isHome) {
+      throw new Error('Die Risiko-Figur ist nicht mehr auf dem Hauptpfad');
+    }
+
+    const riskRoll = Math.floor(Math.random() * 6) + 1;
+    const riskResult = this._resolveRiskField(playerIndex, piece, riskRoll);
+    this.pendingAction = null;
+    this.lastActionAt = Date.now();
+
+    return {
+      pieceIndex,
+      roll: riskRoll,
+      effects: riskResult.effects,
+      captures: riskResult.captures,
     };
   }
 
@@ -648,6 +685,7 @@ class Game {
       rollAttempts: this.rollAttempts,
       creatorId: this.creatorId,
       startedAt: this.startedAt,
+      lastActionAt: this.lastActionAt,
       pendingAction,
     };
   }

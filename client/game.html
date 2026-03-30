@@ -13,9 +13,9 @@
       <span>SuperMensch</span>
     </a>
     <div class="nav-links">
-      <a href="lobby.html">Lobby</a>
-      <a href="rules.html">Regeln</a>
-      <a href="about.html">Projekt</a>
+      <a href="lobby.html" id="game-nav-lobby">Lobby</a>
+      <a href="rules.html" id="game-nav-rules">Regeln</a>
+      <a href="about.html" id="game-nav-project">Projekt</a>
       <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
     </div>
   </nav>
@@ -74,6 +74,7 @@
           </div>
           <button class="roll-btn" id="roll-dice-btn" disabled>Würfeln</button>
           <div class="dice-value-text" id="dice-value-text"></div>
+          <div class="dice-status-toast" id="dice-status-toast" aria-live="polite"></div>
         </section>
 
         <section class="players-panel">
@@ -91,6 +92,57 @@
       <p id="winner-name"></p>
       <p id="winner-countdown"></p>
       <a href="index.html" class="btn btn-primary">Zurück zur Startseite</a>
+    </div>
+  </div>
+
+  <div class="game-modal-overlay" id="game-rules-overlay" aria-hidden="true">
+    <div class="game-modal-card game-rules-card">
+      <button class="game-modal-close" id="game-rules-close" type="button" aria-label="Regeln schließen">×</button>
+      <div class="game-modal-head">
+        <p class="section-title">Regeln</p>
+        <h2>Spielregeln und Superfelder</h2>
+      </div>
+      <div class="game-modal-content rules-summary-content">
+        <article class="glass-card prose-card">
+          <p class="section-title">Kurzfassung</p>
+          <h2>So funktioniert die Runde</h2>
+          <ol>
+            <li>Eine 6 bringt eine Figur aus dem Haus auf das Startfeld.</li>
+            <li>Stehen noch alle Figuren im Haus, darf bis zu dreimal auf eine 6 gewürfelt werden.</li>
+            <li>Die gewürfelte Zahl bestimmt genau, wie weit eine Figur ziehen darf.</li>
+            <li>Landest du auf einer gegnerischen Figur auf einem normalen Feld, schickst du sie zurück ins Haus.</li>
+            <li>Mit einer 6 erhältst du nach einem gültigen Zug einen weiteren Wurf.</li>
+            <li>Gewonnen hat, wer zuerst alle vier Figuren im eigenen Zielbereich unterbringt.</li>
+          </ol>
+        </article>
+
+        <article class="glass-card prose-card">
+          <p class="section-title">Superfelder</p>
+          <h2>Besondere Felder</h2>
+          <ul>
+            <li><strong>Risiko-Feld:</strong> Du darfst einmal zusätzlich würfeln. 1 zurück ins Haus, 2 oder 3 rückwärts, 4 bis 6 vorwärts.</li>
+            <li><strong>Schutzfeld:</strong> Figuren auf diesem Feld können nicht geschmissen werden.</li>
+            <li><strong>Tausch-Feld:</strong> Deine aktive Figur darf mit einer gegnerischen Figur auf dem Hauptpfad getauscht werden.</li>
+            <li><strong>Extra Wurf-Feld:</strong> Du bekommst sofort einen weiteren Wurf.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-modal-overlay" id="game-warning-overlay" aria-hidden="true">
+    <div class="game-modal-card game-warning-card">
+      <div class="game-modal-head">
+        <p class="section-title">Warnung</p>
+        <h2 id="game-warning-title">Spiel verlassen?</h2>
+      </div>
+      <p class="game-modal-copy" id="game-warning-copy">
+        Wenn du diese Seite verlässt, verlässt du auch die laufende Partie.
+      </p>
+      <div class="cta-row game-modal-actions">
+        <button class="btn btn-danger" id="game-warning-confirm" type="button">Trotzdem weiter</button>
+        <button class="btn btn-secondary" id="game-warning-cancel" type="button">Zurück zum Spiel</button>
+      </div>
     </div>
   </div>
 

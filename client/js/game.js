@@ -4,6 +4,7 @@ const Game = (() => {
   const BOARD_SIZE = 40;
   const PIECES_PER_PLAYER = 4;
   const MAX_LOG_ENTRIES = 18;
+  const NO_MOVE_NOTICE_MS = 3000;
   const COLORS = ['green', 'red', 'blue', 'yellow'];
 
   const PATH_COORDS = [
@@ -68,7 +69,7 @@ const Game = (() => {
       type: 'risk',
       title: 'Risiko-Feld',
       badge: '?',
-      description: 'Du würfelst erneut: 1 ins Haus, 2-3 Felder zurück, 4-6 Felder vor.'
+      description: 'Würfle einmal zusätzlich: 1 ins Haus, 2-3 Felder zurück, 4-6 Felder vor.'
     }]
   ]);
 
@@ -88,6 +89,10 @@ const Game = (() => {
   let diceAnimTimer = null;
   let elapsedTimer = null;
   let winnerCountdownTimer = null;
+  let diceToastTimer = null;
+  let rerollLockTimer = null;
+  let rerollLockedUntil = 0;
+  let pendingLeaveHref = null;
 
   const cellLookup = new Map();
 
@@ -365,10 +370,20 @@ const Game = (() => {
       pendingSwap?.type === 'swap' &&
       pendingSwap.playerId &&
       pendingSwap.playerId === getCurrentPlayerId();
+    const isRiskRollTurn =
+      pendingSwap?.type === 'risk_roll' &&
+      pendingSwap.playerId &&
+      pendingSwap.playerId === getCurrentPlayerId();
 
     if (isSwapSelectionTurn) {
       label.textContent = 'Tauschziel wählen';
       info.textContent = 'Wähle rechts oder direkt auf dem Brett eine gegnerische Figur zum Tauschen.';
+      return;
+    }
+
+    if (isRiskRollTurn) {
+      label.textContent = 'Risiko-Wurf';
+      info.textContent = 'Würfle erneut, um das Risikofeld aufzulösen.';
       return;
     }
 
@@ -384,8 +399,13 @@ const Game = (() => {
         info.textContent = 'Würfle, um deinen Zug zu starten';
       }
     } else {
-      label.textContent = `${currentPlayer.name} ist dran`;
-      info.textContent = `Warte auf ${currentPlayer.name}`;
+      if (pendingSwap?.type === 'risk_roll' && pendingSwap.playerId === currentPlayer.id) {
+        label.textContent = `${currentPlayer.name} würfelt Risiko`;
+        info.textContent = `Warte auf den Risiko-Wurf von ${currentPlayer.name}`;
+      } else {
+        label.textContent = `${currentPlayer.name} ist dran`;
+        info.textContent = `Warte auf ${currentPlayer.name}`;
+      }
     }
   };
 
@@ -395,11 +415,20 @@ const Game = (() => {
     const rollButton = document.getElementById('roll-dice-btn');
     if (!dice || !rollButton) return;
 
+    const pendingAction = gameState?.pendingAction;
+    const isRiskRollForMe =
+      pendingAction?.type === 'risk_roll' &&
+      pendingAction.playerId === getCurrentPlayerId();
+
     renderDiceFace(gameState?.diceValue || 1);
 
     if (valueText) {
-      if (gameState?.pendingAction?.type === 'swap') {
+      if (pendingAction?.type === 'swap') {
         valueText.textContent = 'Tauschziel auswählen';
+      } else if (isRiskRollForMe) {
+        valueText.textContent = 'Risiko-Wurf ausführen';
+      } else if (pendingAction?.type === 'risk_roll') {
+        valueText.textContent = 'Risiko-Wurf läuft';
       } else if (gameState?.diceValue) {
         valueText.textContent = `Gewürfelt: ${gameState.diceValue}`;
       } else {
@@ -411,11 +440,15 @@ const Game = (() => {
       checkIsMyTurn() &&
       Boolean(gameState) &&
       gameState.status === 'playing' &&
-      !gameState.diceRolled &&
-      !gameState.pendingAction;
+      !isRollLocked() &&
+      (
+        (isRiskRollForMe && pendingAction?.type === 'risk_roll') ||
+        (!gameState.diceRolled && !pendingAction)
+      );
 
     rollButton.disabled = !canRoll;
     dice.classList.toggle('clickable', canRoll);
+    rollButton.textContent = isRiskRollForMe ? 'Risiko würfeln' : 'Würfeln';
   };
 
   const renderDiceFace = (value) => {
@@ -499,6 +532,101 @@ const Game = (() => {
     return `${pad(minutes)}:${pad(seconds)}`;
   };
 
+  const isRollLocked = () => Date.now() < rerollLockedUntil;
+
+  const lockRollFor = (duration = NO_MOVE_NOTICE_MS) => {
+    rerollLockedUntil = Date.now() + duration;
+
+    if (rerollLockTimer) {
+      clearTimeout(rerollLockTimer);
+    }
+
+    rerollLockTimer = window.setTimeout(() => {
+      rerollLockedUntil = 0;
+      rerollLockTimer = null;
+      renderDice();
+    }, duration);
+  };
+
+  const showDiceStatusToast = (message, duration = NO_MOVE_NOTICE_MS) => {
+    const toast = document.getElementById('dice-status-toast');
+    if (!toast) return;
+
+    if (diceToastTimer) {
+      clearTimeout(diceToastTimer);
+    }
+
+    toast.textContent = message;
+    toast.classList.add('visible');
+
+    diceToastTimer = window.setTimeout(() => {
+      toast.classList.remove('visible');
+      diceToastTimer = null;
+    }, duration);
+  };
+
+  const closeGamePopups = () => {
+    const rulesOverlay = document.getElementById('game-rules-overlay');
+    const warningOverlay = document.getElementById('game-warning-overlay');
+
+    if (rulesOverlay) {
+      rulesOverlay.classList.remove('visible');
+      rulesOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    if (warningOverlay) {
+      warningOverlay.classList.remove('visible');
+      warningOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    document.body.classList.remove('modal-open');
+    pendingLeaveHref = null;
+  };
+
+  const openRulesModal = (event) => {
+    event.preventDefault();
+    const rulesOverlay = document.getElementById('game-rules-overlay');
+    if (!rulesOverlay) return;
+
+    closeGamePopups();
+    rulesOverlay.classList.add('visible');
+    rulesOverlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  };
+
+  const openLeaveWarning = (event, href, label) => {
+    event.preventDefault();
+    const warningOverlay = document.getElementById('game-warning-overlay');
+    const title = document.getElementById('game-warning-title');
+    const copy = document.getElementById('game-warning-copy');
+    const confirm = document.getElementById('game-warning-confirm');
+    if (!warningOverlay || !title || !copy || !confirm) return;
+
+    pendingLeaveHref = href;
+    title.textContent = `Zu ${label} wechseln?`;
+    copy.textContent = `Wenn du jetzt zu "${label}" wechselst, verlässt du die laufende Partie und wirst aus dem aktuellen Spiel entfernt.`;
+    confirm.textContent = `Weiter zu ${label}`;
+
+    closeGamePopups();
+    warningOverlay.classList.add('visible');
+    warningOverlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  };
+
+  const confirmLeaveNavigation = () => {
+    if (!pendingLeaveHref) {
+      closeGamePopups();
+      return;
+    }
+
+    if (gameInfo?.gameId && socket) {
+      socket.emit('leave-game', { gameId: gameInfo.gameId });
+    }
+
+    SocketManager.clearGameInfo();
+    window.location.href = pendingLeaveHref;
+  };
+
   const addLogEntry = (message, timestamp = null) => {
     const list = document.getElementById('game-log-list');
     if (!list) return;
@@ -554,9 +682,17 @@ const Game = (() => {
       !gameInfo ||
       !checkIsMyTurn() ||
       !gameState ||
-      gameState.diceRolled ||
-      gameState.pendingAction
+      isRollLocked()
     ) {
+      return;
+    }
+
+    if (gameState.pendingAction?.type === 'risk_roll') {
+      socket.emit('roll-risk-dice', { gameId: gameInfo.gameId });
+      return;
+    }
+
+    if (gameState.diceRolled || gameState.pendingAction) {
       return;
     }
 
@@ -621,8 +757,11 @@ const Game = (() => {
 
       if (validMoves.length === 0 && canRollAgain) {
         addLogEntry(`${rollerName} hat keinen Zug und darf erneut würfeln`);
+        showDiceStatusToast('Kein Zug möglich. Du kannst in 3 Sekunden erneut würfeln.');
+        lockRollFor();
       } else if (validMoves.length === 0) {
         addLogEntry('Kein gültiger Zug möglich');
+        showDiceStatusToast('Kein Zug möglich. Der Zug endet gleich.');
       }
     } else {
       validMoves = [];
@@ -638,7 +777,6 @@ const Game = (() => {
 
   const onPieceMoved = (data) => {
     validMoves = [];
-    let riskRoll = null;
 
     if (data.state) {
       renderGameState(data.state);
@@ -653,21 +791,37 @@ const Game = (() => {
     });
 
     (data.effects || []).forEach((effect) => {
-      if (effect.type === 'risk_roll') {
-        riskRoll = effect.roll;
+      if (effect.message) {
+        addLogEntry(effect.message);
       }
+    });
+  };
 
+  const onRiskRollResolved = (data) => {
+    validMoves = [];
+
+    if (data.state) {
+      renderGameState(data.state);
+    }
+
+    const roller = data.state?.players?.[data.playerIndex];
+    const rollerName = roller ? roller.name : 'Ein Spieler';
+    addLogEntry(`${rollerName} würfelt auf dem Risikofeld ${data.roll}`);
+
+    (data.captures || []).forEach((capture) => {
+      addLogEntry(`${rollerName} schlägt ${capture.playerName}`);
+    });
+
+    (data.effects || []).forEach((effect) => {
       if (effect.message) {
         addLogEntry(effect.message);
       }
     });
 
-    if (riskRoll) {
-      const valueText = document.getElementById('dice-value-text');
-      animateDice(riskRoll);
-      if (valueText) {
-        valueText.textContent = `Risiko-Wurf: ${riskRoll}`;
-      }
+    const valueText = document.getElementById('dice-value-text');
+    animateDice(data.roll);
+    if (valueText) {
+      valueText.textContent = `Risiko-Wurf: ${data.roll}`;
     }
   };
 
@@ -684,6 +838,11 @@ const Game = (() => {
   };
 
   const onTurnChanged = (state) => {
+    rerollLockedUntil = 0;
+    if (rerollLockTimer) {
+      clearTimeout(rerollLockTimer);
+      rerollLockTimer = null;
+    }
     renderGameState(state);
 
     const currentPlayer = state?.players?.[state.currentPlayerIndex];
@@ -758,6 +917,18 @@ const Game = (() => {
 
   const onError = (data) => {
     addLogEntry(`Fehler: ${data.message}`);
+  };
+
+  const onGameAborted = (data) => {
+    const message = data?.message || 'Das Spiel wurde beendet.';
+    addLogEntry(message);
+    closeGamePopups();
+    showDiceStatusToast(message, 1800);
+
+    window.setTimeout(() => {
+      SocketManager.clearGameInfo();
+      window.location.href = 'index.html';
+    }, 1800);
   };
 
   const computeValidMoves = (state, playerIndex) => {
@@ -895,6 +1066,14 @@ const Game = (() => {
 
     const rollButton = document.getElementById('roll-dice-btn');
     const dice = document.getElementById('dice');
+    const rulesLink = document.getElementById('game-nav-rules');
+    const lobbyLink = document.getElementById('game-nav-lobby');
+    const projectLink = document.getElementById('game-nav-project');
+    const rulesOverlay = document.getElementById('game-rules-overlay');
+    const rulesClose = document.getElementById('game-rules-close');
+    const warningOverlay = document.getElementById('game-warning-overlay');
+    const warningConfirm = document.getElementById('game-warning-confirm');
+    const warningCancel = document.getElementById('game-warning-cancel');
 
     if (rollButton) {
       rollButton.addEventListener('click', handleRollDice);
@@ -904,6 +1083,56 @@ const Game = (() => {
       dice.addEventListener('click', handleRollDice);
     }
 
+    if (rulesLink) {
+      rulesLink.addEventListener('click', openRulesModal);
+    }
+
+    if (lobbyLink) {
+      lobbyLink.addEventListener('click', (event) => {
+        openLeaveWarning(event, lobbyLink.href, 'Lobby');
+      });
+    }
+
+    if (projectLink) {
+      projectLink.addEventListener('click', (event) => {
+        openLeaveWarning(event, projectLink.href, 'Projekt');
+      });
+    }
+
+    if (rulesClose) {
+      rulesClose.addEventListener('click', closeGamePopups);
+    }
+
+    if (warningCancel) {
+      warningCancel.addEventListener('click', closeGamePopups);
+    }
+
+    if (warningConfirm) {
+      warningConfirm.addEventListener('click', confirmLeaveNavigation);
+    }
+
+    if (rulesOverlay) {
+      rulesOverlay.addEventListener('click', (event) => {
+        if (event.target === rulesOverlay) {
+          closeGamePopups();
+        }
+      });
+    }
+
+    if (warningOverlay) {
+      warningOverlay.addEventListener('click', (event) => {
+        if (event.target === warningOverlay) {
+          closeGamePopups();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeGamePopups();
+      }
+    });
+
     socket.on('connect', () => {
       gameInfo = SocketManager.getGameInfo() || gameInfo;
     });
@@ -911,9 +1140,11 @@ const Game = (() => {
     socket.on('game-state', onGameState);
     socket.on('dice-rolled', onDiceRolled);
     socket.on('piece-moved', onPieceMoved);
+    socket.on('risk-roll-resolved', onRiskRollResolved);
     socket.on('swap-completed', onSwapCompleted);
     socket.on('turn-changed', onTurnChanged);
     socket.on('game-over', onGameOver);
+    socket.on('game-aborted', onGameAborted);
     socket.on('player-left', onPlayerLeft);
     socket.on('error', onError);
 

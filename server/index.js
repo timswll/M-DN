@@ -26,7 +26,11 @@ const socketMap = new Map();
 // playerId -> timeoutId
 const disconnectTimers = new Map();
 const botTimers = new Map();
+const noMoveTimers = new Map();
+const inactivityTimers = new Map();
 const BOT_ACTION_DELAY_MS = 900;
+const NO_MOVE_NOTICE_MS = 3000;
+const GAME_INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 
 /**
  * Find the player index for a socket inside a game.
@@ -42,8 +46,102 @@ const clearBotTimer = (gameId) => {
   }
 };
 
+const clearNoMoveTimer = (gameId) => {
+  const timer = noMoveTimers.get(gameId);
+  if (timer) {
+    clearTimeout(timer);
+    noMoveTimers.delete(gameId);
+  }
+};
+
+const clearInactivityTimer = (gameId) => {
+  const timer = inactivityTimers.get(gameId);
+  if (timer) {
+    clearTimeout(timer);
+    inactivityTimers.delete(gameId);
+  }
+};
+
+const clearGameTimers = (gameId) => {
+  clearBotTimer(gameId);
+  clearNoMoveTimer(gameId);
+  clearInactivityTimer(gameId);
+};
+
+const abortGameForInactivity = (gameId) => {
+  const game = games.get(gameId);
+  if (!game) {
+    clearGameTimers(gameId);
+    return;
+  }
+
+  clearGameTimers(gameId);
+  io.to(game.id).emit('game-aborted', {
+    reason: 'timeout',
+    message: 'Das Spiel wurde nach einer Stunde ohne Aktivität beendet.',
+  });
+
+  game.players.forEach((player) => {
+    socketMap.delete(player.id);
+  });
+
+  games.delete(game.id);
+};
+
+const scheduleGameInactivityTimeout = (game) => {
+  if (!game || game.status !== 'playing') {
+    return;
+  }
+
+  clearInactivityTimer(game.id);
+  const timer = setTimeout(() => {
+    inactivityTimers.delete(game.id);
+    abortGameForInactivity(game.id);
+  }, GAME_INACTIVITY_LIMIT_MS);
+
+  inactivityTimers.set(game.id, timer);
+};
+
+const markGameActivity = (game) => {
+  if (!game || game.status !== 'playing') {
+    return;
+  }
+
+  game.lastActionAt = Date.now();
+  scheduleGameInactivityTimeout(game);
+};
+
+const scheduleNoMoveTurnTransition = (game, delay = NO_MOVE_NOTICE_MS) => {
+  if (!game || game.status !== 'playing') {
+    return;
+  }
+
+  clearNoMoveTimer(game.id);
+  const expectedPlayerId = game.players[game.currentPlayerIndex]?.id || null;
+
+  const timer = setTimeout(() => {
+    noMoveTimers.delete(game.id);
+
+    const activeGame = games.get(game.id);
+    if (!activeGame || activeGame.status !== 'playing') {
+      return;
+    }
+
+    const currentPlayer = activeGame.players[activeGame.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.id !== expectedPlayerId) {
+      return;
+    }
+
+    activeGame.nextTurn();
+    io.to(activeGame.id).emit('turn-changed', activeGame.getState());
+    maybeScheduleBotTurn(activeGame);
+  }, delay);
+
+  noMoveTimers.set(game.id, timer);
+};
+
 const emitGameOver = (game) => {
-  clearBotTimer(game.id);
+  clearGameTimers(game.id);
   io.to(game.id).emit('game-over', {
     winner: { name: game.winner.name, color: game.winner.color },
     state: game.getState(),
@@ -77,6 +175,8 @@ const resetForExtraTurn = (game) => {
 };
 
 const applyTurnTransition = (game, extraTurn = false) => {
+  clearNoMoveTimer(game.id);
+
   if (game.status === 'finished') {
     emitGameOver(game);
     return;
@@ -138,8 +238,26 @@ const runBotTurn = (gameId) => {
     return;
   }
 
+  if (game.pendingAction?.type === 'risk_roll') {
+    const riskOutcome = game.resolveRiskRoll(playerIndex);
+    markGameActivity(game);
+
+    io.to(game.id).emit('risk-roll-resolved', {
+      playerIndex,
+      pieceIndex: riskOutcome.pieceIndex,
+      roll: riskOutcome.roll,
+      captures: riskOutcome.captures,
+      effects: riskOutcome.effects,
+      state: game.getState(),
+    });
+
+    applyTurnTransition(game, false);
+    return;
+  }
+
   if (!game.diceRolled) {
     const value = game.rollDice();
+    markGameActivity(game);
     const validMoves = game.getValidMoves(playerIndex);
 
     io.to(game.id).emit('dice-rolled', {
@@ -158,9 +276,7 @@ const runBotTurn = (gameId) => {
       if (allInBase && value !== 6 && game.rollAttempts < 3) {
         maybeScheduleBotTurn(game);
       } else {
-        game.nextTurn();
-        io.to(game.id).emit('turn-changed', game.getState());
-        maybeScheduleBotTurn(game);
+        scheduleNoMoveTurnTransition(game);
       }
       return;
     }
@@ -270,6 +386,7 @@ io.on('connection', (socket) => {
       }
 
       game.startGame();
+      scheduleGameInactivityTimeout(game);
 
       io.to(game.id).emit('game-started', game.getState());
       maybeScheduleBotTurn(game);
@@ -292,6 +409,7 @@ io.on('connection', (socket) => {
       if (game.diceRolled) throw new Error('You have already rolled the dice');
 
       const value = game.rollDice();
+      markGameActivity(game);
       const validMoves = game.getValidMoves(playerIndex);
 
       io.to(game.id).emit('dice-rolled', {
@@ -312,11 +430,41 @@ io.on('connection', (socket) => {
         if (allInBase && value !== 6 && game.rollAttempts < 3) {
           // Player still has attempts — diceRolled is already false
         } else {
-          game.nextTurn();
-          io.to(game.id).emit('turn-changed', game.getState());
-          maybeScheduleBotTurn(game);
+          scheduleNoMoveTurnTransition(game);
         }
       }
+    } catch (err) {
+      socket.emit('error', { message: err.message });
+    }
+  });
+
+  socket.on('roll-risk-dice', (data) => {
+    try {
+      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
+      const game = games.get(data.gameId);
+      if (!game) throw new Error('Game not found');
+      if (game.status !== 'playing') throw new Error('Game is not in progress');
+
+      const playerIndex = findPlayerIndex(game, socket.id);
+      if (playerIndex === -1) throw new Error('You are not in this game');
+      if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
+      if (game.pendingAction?.type !== 'risk_roll') {
+        throw new Error('Aktuell ist kein Risiko-Wurf offen');
+      }
+
+      const riskOutcome = game.resolveRiskRoll(playerIndex);
+      markGameActivity(game);
+
+      io.to(game.id).emit('risk-roll-resolved', {
+        playerIndex,
+        pieceIndex: riskOutcome.pieceIndex,
+        roll: riskOutcome.roll,
+        captures: riskOutcome.captures,
+        effects: riskOutcome.effects,
+        state: game.getState(),
+      });
+
+      applyTurnTransition(game, false);
     } catch (err) {
       socket.emit('error', { message: err.message });
     }
@@ -337,6 +485,7 @@ io.on('connection', (socket) => {
       if (!moveResult.valid) throw new Error(moveResult.reason);
 
       const moveOutcome = game.movePiece(playerIndex, data.pieceIndex);
+      markGameActivity(game);
 
       io.to(game.id).emit('piece-moved', {
         playerIndex,
@@ -380,6 +529,7 @@ io.on('connection', (socket) => {
         data.targetPlayerId,
         data.targetPieceIndex
       );
+      markGameActivity(game);
 
       io.to(game.id).emit('swap-completed', {
         ...swapResult,
@@ -472,7 +622,7 @@ function handleLeave(socket, gameId) {
   socketMap.delete(socket.id);
 
   if (game.players.length === 0) {
-    clearBotTimer(gameId);
+    clearGameTimers(gameId);
     games.delete(gameId);
   } else {
     io.to(gameId).emit('player-left', {
@@ -484,6 +634,7 @@ function handleLeave(socket, gameId) {
     if (game.status === 'finished' && game.winner) {
       emitGameOver(game);
     } else {
+      clearNoMoveTimer(gameId);
       maybeScheduleBotTurn(game);
     }
   }
