@@ -3,12 +3,28 @@
 const ThemeManager = (() => {
   const THEME_KEY = 'maedn-theme';
 
-  const getTheme = () => 'dark';
+  const getTheme = () => {
+    try {
+      const stored = localStorage.getItem(THEME_KEY);
+      if (stored === 'light' || stored === 'dark') {
+        return stored;
+      }
+    } catch (_error) {
+      // Ignore storage access issues and fall back to the document/default theme.
+    }
+
+    const documentTheme = document.documentElement.getAttribute('data-theme');
+    return documentTheme === 'light' ? 'light' : 'dark';
+  };
 
   const setTheme = (theme = 'dark') => {
     const nextTheme = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', nextTheme);
-    localStorage.setItem(THEME_KEY, nextTheme);
+    try {
+      localStorage.setItem(THEME_KEY, nextTheme);
+    } catch (_error) {
+      // Ignore storage access issues and still apply the theme for the current page.
+    }
     updateToggleButton(nextTheme);
   };
 
@@ -39,6 +55,8 @@ const ThemeManager = (() => {
 
   return { init, toggle, getTheme, setTheme };
 })();
+
+document.documentElement.setAttribute('data-theme', ThemeManager.getTheme());
 
 const PlayerInfo = (() => {
   const KEY = 'maedn-player';
