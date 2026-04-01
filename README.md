@@ -25,12 +25,12 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 
 ## Technologie-Stack
 
-| Bereich   | Technologie                                    |
-| --------- | ---------------------------------------------- |
-| Frontend  | HTML5, CSS3 (Container Queries, clamp()), ES6+ |
-| Backend   | Node.js, Express.js                            |
-| Echtzeit  | Socket.io                                      |
-| Persistenz| localStorage (Client-seitig)                   |
+| Bereich    | Technologie                                    |
+| ---------- | ---------------------------------------------- |
+| Frontend   | HTML5, CSS3 (Container Queries, clamp()), ES6+ |
+| Backend    | Node.js, Express.js                            |
+| Echtzeit   | Socket.io                                      |
+| Persistenz | localStorage (Client-seitig)                   |
 
 ## Installation & Start
 
@@ -138,6 +138,7 @@ Basis-URL: `http://<host>:<port>/api` (z.B. `http://141.72.136.155:8300/api`)
 Health-Check des Servers.
 
 **Response** `200 OK`:
+
 ```json
 {
   "status": "ok",
@@ -151,16 +152,19 @@ Health-Check des Servers.
 Erstellt ein neues Spiel.
 
 **Request Body**:
+
 ```json
 { "playerName": "Max" }
 ```
 
 **Response** `201 Created`:
+
 ```json
 { "gameId": "ABC123", "playerId": null }
 ```
 
 **Response** `400 Bad Request`:
+
 ```json
 { "error": "Player name cannot be empty" }
 ```
@@ -170,6 +174,7 @@ Erstellt ein neues Spiel.
 Listet alle beitretbaren Spiele auf.
 
 **Response** `200 OK`:
+
 ```json
 [
   {
@@ -186,6 +191,7 @@ Listet alle beitretbaren Spiele auf.
 Gibt Informationen zu einem bestimmten Spiel zurück.
 
 **Response** `200 OK`:
+
 ```json
 {
   "gameId": "ABC123",
@@ -200,11 +206,13 @@ Gibt Informationen zu einem bestimmten Spiel zurück.
 ```
 
 **Response** `400 Bad Request`:
+
 ```json
 { "error": "Invalid game ID format" }
 ```
 
 **Response** `404 Not Found`:
+
 ```json
 { "error": "Game not found" }
 ```
@@ -213,59 +221,65 @@ Gibt Informationen zu einem bestimmten Spiel zurück.
 
 ### Client → Server
 
-| Event            | Payload                                   | Beschreibung                      |
-| ---------------- | ----------------------------------------- | --------------------------------- |
-| `create-game`    | `{ playerName }`                          | Neues Spiel erstellen             |
-| `join-game`      | `{ gameId, playerName }`                  | Bestehendem Spiel beitreten       |
-| `start-game`     | `{ gameId }`                              | Spiel starten (nur Game Master)   |
-| `roll-dice`      | `{ gameId }`                              | Würfeln (nur aktueller Spieler)   |
-| `move-piece`     | `{ gameId, pieceIndex }`                  | Figur bewegen (0–3)               |
-| `leave-game`     | `{ gameId }`                              | Spiel verlassen                   |
-| `reconnect-game` | `{ gameId, playerId }`                    | Nach Verbindungsabbruch erneut verbinden |
+| Event            | Payload                  | Beschreibung                             |
+| ---------------- | ------------------------ | ---------------------------------------- |
+| `create-game`    | `{ playerName }`         | Neues Spiel erstellen                    |
+| `join-game`      | `{ gameId, playerName }` | Bestehendem Spiel beitreten              |
+| `start-game`     | `{ gameId }`             | Spiel starten (nur Game Master)          |
+| `roll-dice`      | `{ gameId }`             | Würfeln (nur aktueller Spieler)          |
+| `move-piece`     | `{ gameId, pieceIndex }` | Figur bewegen (0–3)                      |
+| `leave-game`     | `{ gameId }`             | Spiel verlassen                          |
+| `reconnect-game` | `{ gameId, playerId }`   | Nach Verbindungsabbruch erneut verbinden |
 
 ### Server → Client
 
-| Event            | Payload                                   | Beschreibung                      |
-| ---------------- | ----------------------------------------- | --------------------------------- |
-| `game-created`   | `{ gameId, playerId, players }`           | Spiel wurde erstellt              |
-| `game-joined`    | `{ gameId, playerId, players }`           | Erfolgreich beigetreten           |
-| `player-joined`  | `{ player, players }`                     | Ein Spieler ist beigetreten       |
-| `player-left`    | `{ playerId, state }`                     | Ein Spieler hat verlassen         |
-| `game-started`   | `{ ...fullGameState }`                    | Spiel wurde gestartet             |
-| `game-state`     | `{ ...fullGameState }`                    | Aktueller Spielzustand            |
-| `dice-rolled`    | `{ value, validMoves, playerId }`         | Würfelergebnis                    |
-| `piece-moved`    | `{ playerIndex, pieceIndex, captured, state }` | Figur wurde bewegt           |
-| `turn-changed`   | `{ ...fullGameState }`                    | Nächster Spieler ist dran         |
-| `game-over`      | `{ winner, state }`                       | Spiel beendet                     |
-| `error`          | `{ message }`                             | Fehlermeldung                     |
+| Event           | Payload                                        | Beschreibung                |
+| --------------- | ---------------------------------------------- | --------------------------- |
+| `game-created`  | `{ gameId, playerId, players }`                | Spiel wurde erstellt        |
+| `game-joined`   | `{ gameId, playerId, players }`                | Erfolgreich beigetreten     |
+| `player-joined` | `{ player, players }`                          | Ein Spieler ist beigetreten |
+| `player-left`   | `{ playerId, state }`                          | Ein Spieler hat verlassen   |
+| `game-started`  | `{ ...fullGameState }`                         | Spiel wurde gestartet       |
+| `game-state`    | `{ ...fullGameState }`                         | Aktueller Spielzustand      |
+| `dice-rolled`   | `{ value, validMoves, playerId }`              | Würfelergebnis              |
+| `piece-moved`   | `{ playerIndex, pieceIndex, captured, state }` | Figur wurde bewegt          |
+| `turn-changed`  | `{ ...fullGameState }`                         | Nächster Spieler ist dran   |
+| `game-over`     | `{ winner, state }`                            | Spiel beendet               |
+| `error`         | `{ message }`                                  | Fehlermeldung               |
 
 ## Cheat Prevention
 
 Die Cheat-Prevention-Strategie folgt dem Prinzip **„Never trust the client"**:
 
 ### 1. Server-seitige Würfelberechnung
+
 Der Würfel wird **ausschließlich auf dem Server** berechnet (`Math.random()` in `gameLogic.js`). Der Client sendet lediglich die Anfrage zum Würfeln – der Würfelwert wird nie vom Client übermittelt.
 
 ### 2. Zugvalidierung
+
 Jeder Zug wird vor der Ausführung vom Server validiert:
+
 - **Spielerreihenfolge**: Nur der aktuelle Spieler darf agieren
 - **Würfelpflicht**: Ein Spieler muss zuerst würfeln, bevor er ziehen kann
 - **Legale Züge**: Die `getValidMoves()`-Funktion berechnet alle erlaubten Züge basierend auf dem aktuellen Spielzustand
 - **Figuren-Index**: Nur gültige Figuren-Indizes (0–3) werden akzeptiert
 
 ### 3. Eingabevalidierung (Middleware)
+
 - **Spielernamen**: Maximal 20 Zeichen, nur Buchstaben/Zahlen/Leerzeichen/Umlaute erlaubt
 - **HTML-Injection**: Zeichen `<` und `>` werden abgelehnt
 - **Spiel-IDs**: Müssen dem Format `[A-Z0-9]{6}` entsprechen
 - **Express-Middleware**: `nameValidationMiddleware` und `gameIdValidationMiddleware` für REST-Endpunkte
 
 ### 4. Spielzustand-Integrität
+
 - Der gesamte Spielzustand lebt auf dem Server (`gameLogic.js`)
 - Clients erhalten nur eine serialisierte Kopie via `getState()`
 - Ungültige Socket-Events werden mit `error`-Events beantwortet
 - Doppeltes Würfeln pro Zug wird verhindert (`diceRolled`-Flag)
 
 ### 5. Verbindungsmanagement
+
 - Disconnects werden mit einer 5-Sekunden-Grace-Period behandelt (für Seitennavigation)
 - Nach Ablauf wird der Spieler aus dem Spiel entfernt
 - Reconnect via `reconnect-game` Event mit Player-ID-Validierung
@@ -273,9 +287,11 @@ Jeder Zug wird vor der Ausführung vom Server validiert:
 ## Spielregeln
 
 ### Ziel
+
 Alle vier eigenen Figuren über das Spielfeld in die Zielfelder bringen.
 
 ### Ablauf
+
 1. Spieler würfeln reihum
 2. Eine **6** bringt eine Figur aus der Basis aufs Startfeld
 3. Solange alle Figuren in der Basis: bis zu **3 Würfelversuche**

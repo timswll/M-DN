@@ -6,8 +6,18 @@
   "scripts": {
     "start": "cd server && node index.js",
     "install-server": "cd server && npm install",
-    "dev": "cd server && node --watch index.js"
+    "dev": "cd server && node --watch index.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "node --check server/index.js && node --check server/gameLogic.js && node --check server/validation.js && node --check server/routes/api.js && node --check client/js/main.js && node --check client/js/socket-manager.js && node --check client/js/lobby.js && node --check client/js/waiting.js && node --check client/js/game.js"
   },
-  "keywords": ["board-game", "multiplayer", "socket.io"],
-  "license": "MIT"
+  "keywords": [
+    "board-game",
+    "multiplayer",
+    "socket.io"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  }
 }

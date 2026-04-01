@@ -3,6 +3,9 @@
 const ThemeManager = (() => {
   const THEME_KEY = 'maedn-theme';
 
+  /**
+   * Resolve the last chosen theme and gracefully fall back if storage is unavailable.
+   */
   const getTheme = () => {
     try {
       const stored = localStorage.getItem(THEME_KEY);
@@ -61,6 +64,9 @@ document.documentElement.setAttribute('data-theme', ThemeManager.getTheme());
 const PlayerInfo = (() => {
   const KEY = 'maedn-player';
 
+  /**
+   * Store the preferred player name so it can be restored across pages.
+   */
   const getName = () => localStorage.getItem(KEY) || '';
   const setName = (name) => localStorage.setItem(KEY, name);
 
@@ -70,6 +76,9 @@ const PlayerInfo = (() => {
 const Utils = (() => {
   let errorTimer = null;
 
+  /**
+   * Show a temporary inline error message inside the requested container.
+   */
   const showError = (containerId, message) => {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -93,7 +102,7 @@ const Utils = (() => {
       green: 'Grün',
       red: 'Rot',
       blue: 'Blau',
-      yellow: 'Gelb'
+      yellow: 'Gelb',
     };
     return colors[color] || color;
   };

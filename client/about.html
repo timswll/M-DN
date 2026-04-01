@@ -1,89 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperMensch – Projekt</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <nav class="site-nav">
-    <a href="index.html" class="nav-brand">
-      <span class="brand-mark">◈</span>
-      <span>SuperMensch</span>
-    </a>
-    <div class="nav-links">
-      <a href="index.html">Start</a>
-      <a href="rules.html">Regeln</a>
-      <a href="lobby.html">Lobby</a>
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
-    </div>
-  </nav>
-  <div class="nav-spacer"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperMensch – Projekt</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <nav class="site-nav">
+      <a href="index.html" class="nav-brand">
+        <span class="brand-mark">◈</span>
+        <span>SuperMensch</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Start</a>
+        <a href="rules.html">Regeln</a>
+        <a href="lobby.html">Lobby</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
+      </div>
+    </nav>
+    <div class="nav-spacer"></div>
 
-  <main class="shell page-stack">
-    <section class="glass-card page-hero">
-      <p class="eyebrow">Über uns</p>
-      <h1 class="gradient-title">Was hinter SuperMensch steckt</h1>
-      <p class="page-copy">
-        Hier findest du einen kurzen Überblick darüber, wie SuperMensch aufgebaut ist, wie das Spiel
-        funktioniert und worauf wir bei Gestaltung und Bedienung Wert gelegt haben.
-      </p>
-    </section>
-
-    <section class="panel-grid">
-      <article class="glass-card prose-card">
-        <p class="section-title">Projekt</p>
-        <h2>So ist das Spiel aufgebaut</h2>
-        <ul>
-          <li>Frontend mit HTML, CSS und Vanilla JavaScript</li>
-          <li>Backend mit Node.js, Express und Socket.io</li>
-          <li>Ein gemeinsamer Spielstand, damit alle immer denselben Stand sehen</li>
-        </ul>
-
-        <h2>Spielablauf</h2>
-        <p>
-          Alle wichtigen Aktionen laufen über den Server. Dazu gehören Würfelwürfe, Zugprüfung,
-          Spezialfelder, Schlaglogik und die Siegbedingung. So bleibt das Spiel für alle Spieler
-          synchron.
+    <main class="shell page-stack">
+      <section class="glass-card page-hero">
+        <p class="eyebrow">Über uns</p>
+        <h1 class="gradient-title">Was hinter SuperMensch steckt</h1>
+        <p class="page-copy">
+          Hier findest du einen kurzen Überblick darüber, wie SuperMensch aufgebaut ist, wie das
+          Spiel funktioniert und worauf wir bei Gestaltung und Bedienung Wert gelegt haben.
         </p>
-      </article>
+      </section>
 
-      <article class="glass-card prose-card">
-        <p class="section-title">Design</p>
-        <h2>Visuelle Richtung</h2>
-        <p>
-          Das Design setzt auf dunkle Flächen, kräftige Farben und ein Spielfeld, das immer klar im
-          Mittelpunkt steht. Wichtig war uns vor allem, dass die Partie trotz der Effekte gut lesbar
-          und übersichtlich bleibt.
-        </p>
+      <section class="panel-grid">
+        <article class="glass-card prose-card">
+          <p class="section-title">Projekt</p>
+          <h2>So ist das Spiel aufgebaut</h2>
+          <ul>
+            <li>Frontend mit HTML, CSS und Vanilla JavaScript</li>
+            <li>Backend mit Node.js, Express und Socket.io</li>
+            <li>Ein gemeinsamer Spielstand, damit alle immer denselben Stand sehen</li>
+          </ul>
 
-        <h2>Benutzeroberfläche</h2>
-        <p>
-          Startseite, Lobby, Warteraum, Regelseite und Spielansicht greifen optisch ineinander. So
-          fühlt sich der Wechsel zwischen den Seiten wie eine zusammenhängende Anwendung an.
-        </p>
+          <h2>Spielablauf</h2>
+          <p>
+            Alle wichtigen Aktionen laufen über den Server. Dazu gehören Würfelwürfe, Zugprüfung,
+            Spezialfelder, Schlaglogik und die Siegbedingung. So bleibt das Spiel für alle Spieler
+            synchron.
+          </p>
+        </article>
 
-        <h2>Spielregeln</h2>
-        <p>
-          Wenn du die Regeln, Superfelder und Sonderfunktionen noch einmal nachlesen möchtest,
-          findest du alles gesammelt auf der Regelseite.
-        </p>
-        <a href="rules.html" class="btn btn-secondary">Zu den Regeln</a>
-      </article>
-    </section>
-  </main>
+        <article class="glass-card prose-card">
+          <p class="section-title">Design</p>
+          <h2>Visuelle Richtung</h2>
+          <p>
+            Das Design setzt auf dunkle Flächen, kräftige Farben und ein Spielfeld, das immer klar
+            im Mittelpunkt steht. Wichtig war uns vor allem, dass die Partie trotz der Effekte gut
+            lesbar und übersichtlich bleibt.
+          </p>
 
-  <footer class="site-footer">
-    <p>&copy; 2026 SuperMensch Online</p>
-  </footer>
+          <h2>Benutzeroberfläche</h2>
+          <p>
+            Startseite, Lobby, Warteraum, Regelseite und Spielansicht greifen optisch ineinander. So
+            fühlt sich der Wechsel zwischen den Seiten wie eine zusammenhängende Anwendung an.
+          </p>
 
-  <script>
-    if (window.location.hash === '#rules') {
-      window.location.replace('rules.html');
-    }
-  </script>
-  <script src="js/main.js"></script>
-</body>
+          <h2>Spielregeln</h2>
+          <p>
+            Wenn du die Regeln, Superfelder und Sonderfunktionen noch einmal nachlesen möchtest,
+            findest du alles gesammelt auf der Regelseite.
+          </p>
+          <a href="rules.html" class="btn btn-secondary">Zu den Regeln</a>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 SuperMensch Online</p>
+    </footer>
+
+    <script>
+      if (window.location.hash === '#rules') {
+        window.location.replace('rules.html');
+      }
+    </script>
+    <script src="js/main.js"></script>
+  </body>
 </html>
-<!-- Das ist ein Kommentar Test -->

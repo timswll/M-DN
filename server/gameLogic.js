@@ -28,7 +28,8 @@ const SUPER_FIELDS = [
     type: 'swap',
     position: 13,
     title: 'Tausch-Feld',
-    description: 'Bei Landung darfst du deine aktive Figur mit einer gegnerischen Brettfigur tauschen.',
+    description:
+      'Bei Landung darfst du deine aktive Figur mit einer gegnerischen Brettfigur tauschen.',
   },
   {
     type: 'shield',
@@ -44,9 +45,7 @@ const SUPER_FIELDS = [
   },
 ];
 
-const SUPER_FIELD_BY_POSITION = new Map(
-  SUPER_FIELDS.map((field) => [field.position, field])
-);
+const SUPER_FIELD_BY_POSITION = new Map(SUPER_FIELDS.map((field) => [field.position, field]));
 
 /** Map of gameId -> Game */
 const games = new Map();
@@ -94,6 +93,9 @@ class Game {
     this.lastActionAt = null;
   }
 
+  /**
+   * Add a human player while the room is still waiting for the match to start.
+   */
   addPlayer(socketId, name) {
     if (this.players.length >= this.maxPlayers) {
       throw new Error('Game is full');
@@ -107,6 +109,9 @@ class Game {
     return player;
   }
 
+  /**
+   * Fill the waiting room with numbered bots up to the requested seat count.
+   */
   addBotPlayers(targetCount = this.maxPlayers) {
     if (this.status !== 'waiting') {
       throw new Error('Bots can only be added before the game starts');
@@ -120,6 +125,9 @@ class Game {
     }
   }
 
+  /**
+   * Remove a player and normalize creator/turn state so the game can continue safely.
+   */
   removePlayer(socketId) {
     const idx = this.players.findIndex((player) => player.id === socketId);
     if (idx === -1) return;
@@ -149,6 +157,9 @@ class Game {
     }
   }
 
+  /**
+   * Freeze the player order and switch the room from waiting to active play.
+   */
   startGame() {
     if (this.players.length < 2) {
       throw new Error('Need at least 2 players to start');
@@ -168,6 +179,9 @@ class Game {
     this.pendingAction = null;
   }
 
+  /**
+   * Roll the shared dice and handle the three-tries-in-base rule.
+   */
   rollDice() {
     const value = Math.floor(Math.random() * 6) + 1;
     this.diceValue = value;
@@ -256,6 +270,9 @@ class Game {
     return false;
   }
 
+  /**
+   * Return the movable pieces for the active dice result, including base priority on a six.
+   */
   getValidMoves(playerIndex) {
     const player = this.players[playerIndex];
     const dice = this.diceValue;
@@ -329,6 +346,9 @@ class Game {
     return moves;
   }
 
+  /**
+   * Remove an opposing piece from a shared board field unless the destination is protected.
+   */
   _captureAt(movingPlayerIndex, boardPosition) {
     if (this._isShieldField(boardPosition)) {
       return null;
@@ -391,11 +411,13 @@ class Game {
   }
 
   _resolveRiskField(playerIndex, piece, riskRoll = Math.floor(Math.random() * 6) + 1) {
-    const effects = [{
-      type: 'risk_roll',
-      roll: riskRoll,
-      message: `Risiko-Feld: Zusatzwurf ${riskRoll}.`,
-    }];
+    const effects = [
+      {
+        type: 'risk_roll',
+        roll: riskRoll,
+        message: `Risiko-Feld: Zusatzwurf ${riskRoll}.`,
+      },
+    ];
 
     if (riskRoll === 1) {
       piece.isBase = true;
@@ -431,9 +453,10 @@ class Game {
       outcome: direction === -1 ? 'backward' : 'forward',
       roll: riskRoll,
       steps: riskRoll,
-      message: direction === -1
-        ? `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder zurück.`
-        : `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder vor.`,
+      message:
+        direction === -1
+          ? `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder zurück.`
+          : `Risiko-Feld: ${riskRoll} gewürfelt, Figur zieht ${riskRoll} Felder vor.`,
     });
 
     return {
@@ -442,6 +465,9 @@ class Game {
     };
   }
 
+  /**
+   * Apply the one-off effect of a super field after a piece finishes its normal move.
+   */
   _applyFieldEffects(playerIndex, pieceIndex) {
     const player = this.players[playerIndex];
     const piece = player.pieces[pieceIndex];
@@ -457,10 +483,12 @@ class Game {
 
     if (field.type === 'shield') {
       return {
-        effects: [{
-          type: 'shield',
-          message: 'Schutzfeld: Diese Figur ist auf diesem Feld vor dem Schmeißen geschützt.',
-        }],
+        effects: [
+          {
+            type: 'shield',
+            message: 'Schutzfeld: Diese Figur ist auf diesem Feld vor dem Schmeißen geschützt.',
+          },
+        ],
         captures: [],
         extraTurn: false,
         pendingAction: null,
@@ -469,10 +497,12 @@ class Game {
 
     if (field.type === 'extra_roll') {
       return {
-        effects: [{
-          type: 'extra_roll',
-          message: 'Extra Wurf-Feld: Du erhältst sofort einen weiteren Wurf.',
-        }],
+        effects: [
+          {
+            type: 'extra_roll',
+            message: 'Extra Wurf-Feld: Du erhältst sofort einen weiteren Wurf.',
+          },
+        ],
         captures: [],
         extraTurn: true,
         pendingAction: null,
@@ -483,10 +513,12 @@ class Game {
       const candidates = this._swapCandidates(playerIndex);
       if (candidates.length === 0) {
         return {
-          effects: [{
-            type: 'swap_unavailable',
-            message: 'Tausch-Feld: Es gibt aktuell keine gegnerische Brettfigur zum Tauschen.',
-          }],
+          effects: [
+            {
+              type: 'swap_unavailable',
+              message: 'Tausch-Feld: Es gibt aktuell keine gegnerische Brettfigur zum Tauschen.',
+            },
+          ],
           captures: [],
           extraTurn: false,
           pendingAction: null,
@@ -500,10 +532,12 @@ class Game {
       };
 
       return {
-        effects: [{
-          type: 'swap',
-          message: 'Tausch-Feld: Wähle eine gegnerische Figur auf dem Hauptpfad zum Tauschen.',
-        }],
+        effects: [
+          {
+            type: 'swap',
+            message: 'Tausch-Feld: Wähle eine gegnerische Figur auf dem Hauptpfad zum Tauschen.',
+          },
+        ],
         captures: [],
         extraTurn: false,
         pendingAction: this.pendingAction,
@@ -512,11 +546,13 @@ class Game {
 
     if (field.type === 'risk') {
       return {
-        effects: [{
-          type: 'risk',
-          outcome: 'pending',
-          message: 'Risiko-Feld: Würfle erneut, um die Sonderaktion auszulösen.',
-        }],
+        effects: [
+          {
+            type: 'risk',
+            outcome: 'pending',
+            message: 'Risiko-Feld: Würfle erneut, um die Sonderaktion auszulösen.',
+          },
+        ],
         captures: [],
         extraTurn: false,
         pendingAction: {
@@ -530,6 +566,9 @@ class Game {
     return { effects: [], captures: [], extraTurn: false, pendingAction: null };
   }
 
+  /**
+   * Execute one full player move, including captures, home entry, super fields and win detection.
+   */
   movePiece(playerIndex, pieceIndex) {
     const player = this.players[playerIndex];
     const piece = player.pieces[pieceIndex];
@@ -580,6 +619,9 @@ class Game {
     };
   }
 
+  /**
+   * Resolve the manual follow-up roll required by the risk field.
+   */
   resolveRiskRoll(playerIndex) {
     if (!this.pendingAction || this.pendingAction.type !== 'risk_roll') {
       throw new Error('Kein Risiko-Wurf ist aktuell offen');
@@ -609,6 +651,9 @@ class Game {
     };
   }
 
+  /**
+   * Complete a pending swap action after the client or a bot selected the enemy target.
+   */
   completeSwap(playerIndex, targetPlayerId, targetPieceIndex) {
     if (!this.pendingAction || this.pendingAction.type !== 'swap') {
       throw new Error('No swap action is pending');
@@ -658,6 +703,9 @@ class Game {
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
   }
 
+  /**
+   * Expose a serializable snapshot of the current game for sockets and REST endpoints.
+   */
   getState() {
     const pendingAction = this.pendingAction
       ? {

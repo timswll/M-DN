@@ -35,8 +35,7 @@ const GAME_INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 /**
  * Find the player index for a socket inside a game.
  */
-const findPlayerIndex = (game, socketId) =>
-  game.players.findIndex((p) => p.id === socketId);
+const findPlayerIndex = (game, socketId) => game.players.findIndex((p) => p.id === socketId);
 
 const clearBotTimer = (gameId) => {
   const timer = botTimers.get(gameId);
@@ -68,6 +67,9 @@ const clearGameTimers = (gameId) => {
   clearInactivityTimer(gameId);
 };
 
+/**
+ * Abort an active game after prolonged inactivity and notify every connected client.
+ */
 const abortGameForInactivity = (gameId) => {
   const game = games.get(gameId);
   if (!game) {
@@ -102,6 +104,9 @@ const scheduleGameInactivityTimeout = (game) => {
   inactivityTimers.set(game.id, timer);
 };
 
+/**
+ * Refresh the activity timestamp whenever a real game action succeeds.
+ */
 const markGameActivity = (game) => {
   if (!game || game.status !== 'playing') {
     return;
@@ -111,6 +116,9 @@ const markGameActivity = (game) => {
   scheduleGameInactivityTimeout(game);
 };
 
+/**
+ * Delay the turn change briefly so the client can show "no move possible" feedback.
+ */
 const scheduleNoMoveTurnTransition = (game, delay = NO_MOVE_NOTICE_MS) => {
   if (!game || game.status !== 'playing') {
     return;
@@ -174,6 +182,9 @@ const resetForExtraTurn = (game) => {
   game.rollAttempts = 0;
 };
 
+/**
+ * Decide whether the same player continues or the turn advances after a completed action.
+ */
 const applyTurnTransition = (game, extraTurn = false) => {
   clearNoMoveTimer(game.id);
 
@@ -193,6 +204,9 @@ const applyTurnTransition = (game, extraTurn = false) => {
   maybeScheduleBotTurn(game);
 };
 
+/**
+ * Let a bot resolve a pending swap by selecting one valid enemy target at random.
+ */
 const resolveBotSwap = (game) => {
   const playerIndex = game.currentPlayerIndex;
   const botPlayer = game.players[playerIndex];
@@ -205,11 +219,7 @@ const resolveBotSwap = (game) => {
   }
 
   const target = candidates[Math.floor(Math.random() * candidates.length)];
-  const swapResult = game.completeSwap(
-    playerIndex,
-    target.playerId,
-    target.pieceIndex
-  );
+  const swapResult = game.completeSwap(playerIndex, target.playerId, target.pieceIndex);
 
   io.to(game.id).emit('swap-completed', {
     ...swapResult,
@@ -220,6 +230,9 @@ const resolveBotSwap = (game) => {
   console.log(`Bot ${botPlayer.name} completed a swap in game ${game.id}`);
 };
 
+/**
+ * Drive the full bot turn loop, including dice rolls, delayed feedback and pending special actions.
+ */
 const runBotTurn = (gameId) => {
   const game = games.get(gameId);
   if (!game || game.status !== 'playing') {
@@ -524,11 +537,7 @@ io.on('connection', (socket) => {
       if (playerIndex === -1) throw new Error('You are not in this game');
       if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
 
-      const swapResult = game.completeSwap(
-        playerIndex,
-        data.targetPlayerId,
-        data.targetPieceIndex
-      );
+      const swapResult = game.completeSwap(playerIndex, data.targetPlayerId, data.targetPieceIndex);
       markGameActivity(game);
 
       io.to(game.id).emit('swap-completed', {

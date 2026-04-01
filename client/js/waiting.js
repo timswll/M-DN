@@ -5,6 +5,9 @@ const Waiting = (() => {
   let gameInfo = null;
   let isCreator = false;
 
+  /**
+   * Initialize the waiting room and keep the creator controls aligned with the live lobby state.
+   */
   const init = () => {
     gameInfo = SocketManager.getGameInfo();
     if (!gameInfo) {
@@ -55,6 +58,9 @@ const Waiting = (() => {
     gameInfo = SocketManager.getGameInfo();
   };
 
+  /**
+   * Apply the latest room state and redirect once the server reports an active game.
+   */
   const handleGameState = (state) => {
     if (!state || !state.players) return;
 
@@ -110,6 +116,9 @@ const Waiting = (() => {
     });
   };
 
+  /**
+   * Show the creator-only start options and disable them when the lobby is not ready yet.
+   */
   const updateStartButton = (playerCount) => {
     const startBtn = document.getElementById('start-game-btn');
     const fillBotsBtn = document.getElementById('fill-bots-btn');
@@ -118,9 +127,7 @@ const Waiting = (() => {
     if (isCreator) {
       startBtn.style.display = 'inline-flex';
       startBtn.disabled = playerCount < 2;
-      startBtn.title = playerCount < 2
-        ? 'Mindestens 2 Spieler benötigt'
-        : 'Spiel starten';
+      startBtn.title = playerCount < 2 ? 'Mindestens 2 Spieler benötigt' : 'Spiel starten';
 
       if (playerCount < 4) {
         fillBotsBtn.style.display = 'inline-flex';
@@ -144,9 +151,10 @@ const Waiting = (() => {
         ? 'Warte auf weitere Spieler oder starte direkt mit Bots bis 4 Spieler.'
         : 'Warte auf weitere Spieler…';
     } else if (isCreator) {
-      statusEl.textContent = playerCount < 4
-        ? `${playerCount} Spieler bereit. Du kannst normal starten oder bis 4 Spieler mit Bots auffüllen.`
-        : `${playerCount} Spieler bereit. Du kannst das Spiel starten!`;
+      statusEl.textContent =
+        playerCount < 4
+          ? `${playerCount} Spieler bereit. Du kannst normal starten oder bis 4 Spieler mit Bots auffüllen.`
+          : `${playerCount} Spieler bereit. Du kannst das Spiel starten!`;
     } else {
       statusEl.textContent = `${playerCount} Spieler bereit. Warte auf Spielstart…`;
     }
@@ -190,7 +198,9 @@ const Waiting = (() => {
       if (copyBtn) {
         const original = copyBtn.textContent;
         copyBtn.textContent = '✅';
-        setTimeout(() => { copyBtn.textContent = original; }, 2000);
+        setTimeout(() => {
+          copyBtn.textContent = original;
+        }, 2000);
       }
     } catch {
       // Fallback for insecure contexts
@@ -205,16 +215,21 @@ const Waiting = (() => {
       if (copyBtn) {
         const original = copyBtn.textContent;
         copyBtn.textContent = '✅';
-        setTimeout(() => { copyBtn.textContent = original; }, 2000);
+        setTimeout(() => {
+          copyBtn.textContent = original;
+        }, 2000);
       }
     }
   };
 
+  /**
+   * Ask the server to start immediately or to fill the remaining seats with bots first.
+   */
   const handleStartGame = (fillWithBots = false) => {
     if (!gameInfo) return;
     socket.emit('start-game', {
       gameId: gameInfo.gameId,
-      fillWithBots
+      fillWithBots,
     });
   };
 

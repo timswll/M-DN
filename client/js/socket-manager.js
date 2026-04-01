@@ -5,6 +5,9 @@ const SocketManager = (() => {
   let reconnectAttempts = 0;
   const MAX_RECONNECT_ATTEMPTS = 10;
 
+  /**
+   * Create one shared Socket.io connection and restore active sessions after reconnects.
+   */
   const connect = () => {
     if (socket && socket.connected) return socket;
 
@@ -13,7 +16,7 @@ const SocketManager = (() => {
       reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 10000
+      timeout: 10000,
     });
 
     socket.on('connect', () => {
@@ -28,7 +31,7 @@ const SocketManager = (() => {
         if (savedGame) {
           socket.emit('reconnect-game', {
             gameId: savedGame.gameId,
-            playerId: savedGame.playerId
+            playerId: savedGame.playerId,
           });
           // Update stored playerId to new socket id after reconnect
           savedGame.playerId = socket.id;
@@ -83,6 +86,9 @@ const SocketManager = (() => {
     }
   };
 
+  /**
+   * Store the active game context locally so waiting/game pages can recover it after reloads.
+   */
   const saveGameInfo = (gameId, playerId) => {
     localStorage.setItem('currentGame', JSON.stringify({ gameId, playerId }));
   };

@@ -1,14 +1,13 @@
 const express = require('express');
 const { games } = require('../gameLogic');
 const { Game } = require('../gameLogic');
-const {
-  nameValidationMiddleware,
-  gameIdValidationMiddleware,
-} = require('../validation');
+const { nameValidationMiddleware, gameIdValidationMiddleware } = require('../validation');
 
 const router = express.Router();
 
-// Health check
+/**
+ * Lightweight health endpoint used by deployments and quick smoke checks.
+ */
 router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -17,7 +16,9 @@ router.get('/health', (_req, res) => {
   });
 });
 
-// Create a new game
+/**
+ * Create a game over REST for tooling/tests; gameplay itself still happens over sockets.
+ */
 router.post('/games', nameValidationMiddleware, (req, res) => {
   const { playerName } = req.body;
   const game = new Game(null, playerName); // No socketId from REST; socket join later
@@ -25,7 +26,9 @@ router.post('/games', nameValidationMiddleware, (req, res) => {
   res.status(201).json({ gameId: game.id, playerId: game.players[0].id });
 });
 
-// List joinable games
+/**
+ * List waiting rooms that can still be joined.
+ */
 router.get('/games', (_req, res) => {
   const joinable = [];
   for (const game of games.values()) {
@@ -41,7 +44,9 @@ router.get('/games', (_req, res) => {
   res.json(joinable);
 });
 
-// Get game info
+/**
+ * Return a public snapshot of one game without exposing internal server state.
+ */
 router.get('/games/:gameId', gameIdValidationMiddleware, (req, res) => {
   const game = games.get(req.params.gameId);
   if (!game) {

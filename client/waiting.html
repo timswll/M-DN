@@ -1,68 +1,75 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperMensch – Warteraum</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <nav class="site-nav">
-    <a href="index.html" class="nav-brand">
-      <span class="brand-mark">◈</span>
-      <span>SuperMensch</span>
-    </a>
-    <div class="nav-links">
-      <a href="lobby.html">Lobby</a>
-      <a href="rules.html">Regeln</a>
-      <a href="about.html">Projekt</a>
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
-    </div>
-  </nav>
-  <div class="nav-spacer"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperMensch – Warteraum</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <nav class="site-nav">
+      <a href="index.html" class="nav-brand">
+        <span class="brand-mark">◈</span>
+        <span>SuperMensch</span>
+      </a>
+      <div class="nav-links">
+        <a href="lobby.html">Lobby</a>
+        <a href="rules.html">Regeln</a>
+        <a href="about.html">Projekt</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
+      </div>
+    </nav>
+    <div class="nav-spacer"></div>
 
-  <main class="shell page-stack">
-    <section class="glass-card page-hero">
-      <p class="eyebrow">Warteraum</p>
-      <h1 class="gradient-title">Spieler sammeln</h1>
-      <p class="page-copy">
-        Teile den Code, warte auf mindestens einen weiteren Spieler und starte dann die Partie.
-      </p>
-    </section>
+    <main class="shell page-stack">
+      <section class="glass-card page-hero">
+        <p class="eyebrow">Warteraum</p>
+        <h1 class="gradient-title">Spieler sammeln</h1>
+        <p class="page-copy">
+          Teile den Code, warte auf mindestens einen weiteren Spieler und starte dann die Partie.
+        </p>
+      </section>
 
-    <section class="waiting-grid">
-      <article class="glass-card">
-        <p class="section-title">Spielcode</p>
-        <div class="game-code">
-          <span class="game-code-value" id="game-code-value">------</span>
-          <button class="copy-btn" id="copy-code-btn" aria-label="Code kopieren" title="Code kopieren">⧉</button>
-        </div>
-      </article>
+      <section class="waiting-grid">
+        <article class="glass-card">
+          <p class="section-title">Spielcode</p>
+          <div class="game-code">
+            <span class="game-code-value" id="game-code-value">------</span>
+            <button
+              class="copy-btn"
+              id="copy-code-btn"
+              aria-label="Code kopieren"
+              title="Code kopieren"
+            >
+              ⧉
+            </button>
+          </div>
+        </article>
 
-      <article class="glass-card waiting-actions-card">
-        <p class="section-title">Status</p>
-        <p class="status-message" id="status-message">Warte auf weitere Spieler…</p>
-        <div class="waiting-actions">
-          <button class="btn btn-primary btn-large" id="start-game-btn">Normal starten</button>
-          <button class="btn btn-secondary" id="fill-bots-btn">Mit Bots auffüllen</button>
-          <button class="btn btn-danger" id="leave-game-btn">Lobby verlassen</button>
-        </div>
-      </article>
-    </section>
+        <article class="glass-card waiting-actions-card">
+          <p class="section-title">Status</p>
+          <p class="status-message" id="status-message">Warte auf weitere Spieler…</p>
+          <div class="waiting-actions">
+            <button class="btn btn-primary btn-large" id="start-game-btn">Normal starten</button>
+            <button class="btn btn-secondary" id="fill-bots-btn">Mit Bots auffüllen</button>
+            <button class="btn btn-danger" id="leave-game-btn">Lobby verlassen</button>
+          </div>
+        </article>
+      </section>
 
-    <section class="glass-card">
-      <p class="section-title">Spieler</p>
-      <ul class="player-list" id="player-list"></ul>
-    </section>
-  </main>
+      <section class="glass-card">
+        <p class="section-title">Spieler</p>
+        <ul class="player-list" id="player-list"></ul>
+      </section>
+    </main>
 
-  <footer class="site-footer">
-    <p>&copy; 2026 SuperMensch Online</p>
-  </footer>
+    <footer class="site-footer">
+      <p>&copy; 2026 SuperMensch Online</p>
+    </footer>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/socket-manager.js"></script>
-  <script src="js/waiting.js"></script>
-  <script src="js/main.js"></script>
-</body>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/socket-manager.js"></script>
+    <script src="js/waiting.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>

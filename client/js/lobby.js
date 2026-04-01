@@ -3,6 +3,9 @@
 const Lobby = (() => {
   let socket = null;
 
+  /**
+   * Initialize the lobby form, restore saved data and attach the socket flow.
+   */
   const init = () => {
     socket = SocketManager.connect();
 
@@ -51,6 +54,9 @@ const Lobby = (() => {
     return input ? input.value.trim() : '';
   };
 
+  /**
+   * Validate and persist the player name before room actions are sent to the server.
+   */
   const validatePlayerName = () => {
     const name = getPlayerName();
     if (!name) {
@@ -61,6 +67,9 @@ const Lobby = (() => {
     return true;
   };
 
+  /**
+   * Create a fresh game and redirect into the waiting room.
+   */
   const handleCreateGame = () => {
     if (!validatePlayerName()) return;
 
@@ -68,6 +77,9 @@ const Lobby = (() => {
     socket.emit('create-game', { playerName });
   };
 
+  /**
+   * Join an existing game by the six-character room code.
+   */
   const handleJoinGame = () => {
     if (!validatePlayerName()) return;
 

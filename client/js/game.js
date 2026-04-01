@@ -8,69 +8,153 @@ const Game = (() => {
   const COLORS = ['green', 'red', 'blue', 'yellow'];
 
   const PATH_COORDS = [
-    [0, 6], [1, 6], [2, 6], [3, 6], [4, 6],
-    [4, 7], [4, 8], [4, 9], [4, 10], [5, 10],
-    [6, 10], [6, 9], [6, 8], [6, 7], [6, 6],
-    [7, 6], [8, 6], [9, 6], [10, 6], [10, 5],
-    [10, 4], [9, 4], [8, 4], [7, 4], [6, 4],
-    [6, 3], [6, 2], [6, 1], [6, 0], [5, 0],
-    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
-    [3, 4], [2, 4], [1, 4], [0, 4], [0, 5]
+    [0, 6],
+    [1, 6],
+    [2, 6],
+    [3, 6],
+    [4, 6],
+    [4, 7],
+    [4, 8],
+    [4, 9],
+    [4, 10],
+    [5, 10],
+    [6, 10],
+    [6, 9],
+    [6, 8],
+    [6, 7],
+    [6, 6],
+    [7, 6],
+    [8, 6],
+    [9, 6],
+    [10, 6],
+    [10, 5],
+    [10, 4],
+    [9, 4],
+    [8, 4],
+    [7, 4],
+    [6, 4],
+    [6, 3],
+    [6, 2],
+    [6, 1],
+    [6, 0],
+    [5, 0],
+    [4, 0],
+    [4, 1],
+    [4, 2],
+    [4, 3],
+    [4, 4],
+    [3, 4],
+    [2, 4],
+    [1, 4],
+    [0, 4],
+    [0, 5],
   ];
 
   const START_POSITIONS = {
     green: 0,
     yellow: 10,
     blue: 20,
-    red: 30
+    red: 30,
   };
 
   const BASE_COORDS = {
-    red: [[0, 0], [0, 1], [1, 0], [1, 1]],
-    green: [[0, 9], [0, 10], [1, 9], [1, 10]],
-    blue: [[9, 0], [9, 1], [10, 0], [10, 1]],
-    yellow: [[9, 9], [9, 10], [10, 9], [10, 10]]
+    red: [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+    ],
+    green: [
+      [0, 9],
+      [0, 10],
+      [1, 9],
+      [1, 10],
+    ],
+    blue: [
+      [9, 0],
+      [9, 1],
+      [10, 0],
+      [10, 1],
+    ],
+    yellow: [
+      [9, 9],
+      [9, 10],
+      [10, 9],
+      [10, 10],
+    ],
   };
 
   const HOME_COORDS = {
-    green: [[1, 5], [2, 5], [3, 5], [4, 5]],
-    red: [[5, 1], [5, 2], [5, 3], [5, 4]],
-    blue: [[9, 5], [8, 5], [7, 5], [6, 5]],
-    yellow: [[5, 9], [5, 8], [5, 7], [5, 6]]
+    green: [
+      [1, 5],
+      [2, 5],
+      [3, 5],
+      [4, 5],
+    ],
+    red: [
+      [5, 1],
+      [5, 2],
+      [5, 3],
+      [5, 4],
+    ],
+    blue: [
+      [9, 5],
+      [8, 5],
+      [7, 5],
+      [6, 5],
+    ],
+    yellow: [
+      [5, 9],
+      [5, 8],
+      [5, 7],
+      [5, 6],
+    ],
   };
 
   const COLOR_HEX = {
     green: '#00e676',
     red: '#ff1744',
     blue: '#2979ff',
-    yellow: '#ffd600'
+    yellow: '#ffd600',
   };
 
   const SUPER_FIELDS = new Map([
-    [3, {
-      type: 'extra_roll',
-      title: 'Extra Wurf-Feld',
-      badge: '+1',
-      description: 'Bei Landung bekommst du sofort einen weiteren Wurf.'
-    }],
-    [13, {
-      type: 'swap',
-      title: 'Tausch-Feld',
-      badge: '⇄',
-      description: 'Wähle danach eine gegnerische Brettfigur und tausche die Position.'
-    }],
-    [23, {
-      type: 'shield',
-      title: 'Schutzfeld',
-      badge: 'S',
-      description: 'Auf diesem Feld kann deine Figur nicht geschmissen werden.'
-    }],
-    [33, {
-      type: 'risk',
-      title: 'Risiko-Feld',
-      badge: '?',
-      description: 'Würfle einmal zusätzlich: 1 ins Haus, 2-3 Felder zurück, 4-6 Felder vor.'
-    }]
+    [
+      3,
+      {
+        type: 'extra_roll',
+        title: 'Extra Wurf-Feld',
+        badge: '+1',
+        description: 'Bei Landung bekommst du sofort einen weiteren Wurf.',
+      },
+    ],
+    [
+      13,
+      {
+        type: 'swap',
+        title: 'Tausch-Feld',
+        badge: '⇄',
+        description: 'Wähle danach eine gegnerische Brettfigur und tausche die Position.',
+      },
+    ],
+    [
+      23,
+      {
+        type: 'shield',
+        title: 'Schutzfeld',
+        badge: 'S',
+        description: 'Auf diesem Feld kann deine Figur nicht geschmissen werden.',
+      },
+    ],
+    [
+      33,
+      {
+        type: 'risk',
+        title: 'Risiko-Feld',
+        badge: '?',
+        description: 'Würfle einmal zusätzlich: 1 ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
+      },
+    ],
   ]);
 
   const DICE_PIP_LAYOUTS = {
@@ -79,7 +163,7 @@ const Game = (() => {
     3: [1, 5, 9],
     4: [1, 3, 7, 9],
     5: [1, 3, 5, 7, 9],
-    6: [1, 3, 4, 6, 7, 9]
+    6: [1, 3, 4, 6, 7, 9],
   };
 
   let socket = null;
@@ -96,6 +180,9 @@ const Game = (() => {
 
   const cellLookup = new Map();
 
+  /**
+   * Build a fast lookup from board coordinates to semantic field metadata.
+   */
   const buildCellLookup = () => {
     cellLookup.clear();
 
@@ -104,7 +191,7 @@ const Game = (() => {
         type: 'path',
         index,
         startColor: null,
-        superField: SUPER_FIELDS.get(index) || null
+        superField: SUPER_FIELDS.get(index) || null,
       });
     });
 
@@ -114,7 +201,7 @@ const Game = (() => {
       const info = cellLookup.get(key);
       cellLookup.set(key, {
         ...info,
-        startColor: color
+        startColor: color,
       });
     });
 
@@ -131,6 +218,9 @@ const Game = (() => {
     cellLookup.set('5,5', { type: 'center' });
   };
 
+  /**
+   * Render the static 11x11 board grid, including start fields and special-field tooltips.
+   */
   const buildBoard = () => {
     const board = document.getElementById('game-board');
     if (!board) return;
@@ -180,7 +270,10 @@ const Game = (() => {
 
           cell.appendChild(badge);
           cell.appendChild(tooltip);
-          cell.setAttribute('aria-label', `${info.superField.title}: ${info.superField.description}`);
+          cell.setAttribute(
+            'aria-label',
+            `${info.superField.title}: ${info.superField.description}`
+          );
         }
 
         board.appendChild(cell);
@@ -188,6 +281,9 @@ const Game = (() => {
     }
   };
 
+  /**
+   * Synchronize the full game page after every authoritative state update from the server.
+   */
   const renderGameState = (state) => {
     if (!state) return;
 
@@ -206,12 +302,7 @@ const Game = (() => {
   };
 
   const syncValidMoves = () => {
-    if (
-      !gameState ||
-      !checkIsMyTurn() ||
-      !gameState.diceRolled ||
-      gameState.pendingAction
-    ) {
+    if (!gameState || !checkIsMyTurn() || !gameState.diceRolled || gameState.pendingAction) {
       validMoves = [];
       return;
     }
@@ -223,6 +314,9 @@ const Game = (() => {
     document.querySelectorAll('.token').forEach((piece) => piece.remove());
   };
 
+  /**
+   * Paint all active pieces and wire only the moves or swap targets that are currently legal.
+   */
   const renderPieces = () => {
     if (!gameState?.players) return;
 
@@ -252,10 +346,7 @@ const Game = (() => {
           isCurrentPlayer(player);
 
         const isSwapTarget =
-          isSwapSelectionTurn &&
-          !isCurrentPlayer(player) &&
-          !piece.isBase &&
-          !piece.isHome;
+          isSwapSelectionTurn && !isCurrentPlayer(player) && !piece.isBase && !piece.isHome;
 
         if (isMoveSelectable) {
           makeTokenInteractive(
@@ -305,9 +396,7 @@ const Game = (() => {
 
     if (!coords) return null;
 
-    return document.querySelector(
-      `.cell[data-row="${coords[0]}"][data-col="${coords[1]}"]`
-    );
+    return document.querySelector(`.cell[data-row="${coords[0]}"][data-col="${coords[1]}"]`);
   };
 
   const getBaseSlotIndex = (player, targetPiece) => {
@@ -321,6 +410,9 @@ const Game = (() => {
     return 0;
   };
 
+  /**
+   * Refresh the player cards with turn highlighting and finished-piece counters.
+   */
   const renderPlayerPanels = () => {
     const list = document.getElementById('player-info-list');
     if (!list || !gameState?.players) return;
@@ -352,6 +444,9 @@ const Game = (() => {
     });
   };
 
+  /**
+   * Translate the current turn phase into the short status copy shown beside the board.
+   */
   const renderTurnStatus = () => {
     const label = document.getElementById('turn-indicator');
     const dot = document.getElementById('turn-dot');
@@ -377,7 +472,8 @@ const Game = (() => {
 
     if (isSwapSelectionTurn) {
       label.textContent = 'Tauschziel wählen';
-      info.textContent = 'Wähle rechts oder direkt auf dem Brett eine gegnerische Figur zum Tauschen.';
+      info.textContent =
+        'Wähle rechts oder direkt auf dem Brett eine gegnerische Figur zum Tauschen.';
       return;
     }
 
@@ -409,6 +505,9 @@ const Game = (() => {
     }
   };
 
+  /**
+   * Keep dice visuals, labels and enabled actions aligned with the current server state.
+   */
   const renderDice = () => {
     const dice = document.getElementById('dice');
     const valueText = document.getElementById('dice-value-text');
@@ -417,8 +516,7 @@ const Game = (() => {
 
     const pendingAction = gameState?.pendingAction;
     const isRiskRollForMe =
-      pendingAction?.type === 'risk_roll' &&
-      pendingAction.playerId === getCurrentPlayerId();
+      pendingAction?.type === 'risk_roll' && pendingAction.playerId === getCurrentPlayerId();
 
     renderDiceFace(gameState?.diceValue || 1);
 
@@ -441,10 +539,8 @@ const Game = (() => {
       Boolean(gameState) &&
       gameState.status === 'playing' &&
       !isRollLocked() &&
-      (
-        (isRiskRollForMe && pendingAction?.type === 'risk_roll') ||
-        (!gameState.diceRolled && !pendingAction)
-      );
+      ((isRiskRollForMe && pendingAction?.type === 'risk_roll') ||
+        (!gameState.diceRolled && !pendingAction));
 
     rollButton.disabled = !canRoll;
     dice.classList.toggle('clickable', canRoll);
@@ -677,12 +773,7 @@ const Game = (() => {
   };
 
   const handleRollDice = () => {
-    if (
-      !gameInfo ||
-      !checkIsMyTurn() ||
-      !gameState ||
-      isRollLocked()
-    ) {
+    if (!gameInfo || !checkIsMyTurn() || !gameState || isRollLocked()) {
       return;
     }
 
@@ -705,7 +796,7 @@ const Game = (() => {
 
     socket.emit('move-piece', {
       gameId: gameInfo.gameId,
-      pieceIndex
+      pieceIndex,
     });
 
     validMoves = [];
@@ -719,7 +810,7 @@ const Game = (() => {
     socket.emit('select-swap-target', {
       gameId: gameInfo.gameId,
       targetPlayerId,
-      targetPieceIndex
+      targetPieceIndex,
     });
   };
 
@@ -727,6 +818,9 @@ const Game = (() => {
     renderGameState(state);
   };
 
+  /**
+   * Apply a dice event, update the log and show the temporary no-move feedback when needed.
+   */
   const onDiceRolled = (data) => {
     const {
       value,
@@ -734,7 +828,7 @@ const Game = (() => {
       validMoves: moves = [],
       canRollAgain = false,
       rollAttempts = 0,
-      state
+      state,
     } = data;
 
     if (state) {
@@ -752,7 +846,8 @@ const Game = (() => {
     animateDice(value);
 
     if (playerId === getCurrentPlayerId()) {
-      validMoves = moves.length > 0 ? moves : computeValidMoves(gameState, gameState.currentPlayerIndex);
+      validMoves =
+        moves.length > 0 ? moves : computeValidMoves(gameState, gameState.currentPlayerIndex);
 
       if (validMoves.length === 0 && canRollAgain) {
         addLogEntry(`${rollerName} hat keinen Zug und darf erneut würfeln`);
@@ -774,6 +869,9 @@ const Game = (() => {
     }, 560);
   };
 
+  /**
+   * Merge a confirmed move into the UI and announce captures or field effects in the log.
+   */
   const onPieceMoved = (data) => {
     validMoves = [];
 
@@ -796,6 +894,9 @@ const Game = (() => {
     });
   };
 
+  /**
+   * Resolve the second, manual roll that belongs to the risk field.
+   */
   const onRiskRollResolved = (data) => {
     validMoves = [];
 
@@ -930,6 +1031,9 @@ const Game = (() => {
     }, 1800);
   };
 
+  /**
+   * Mirror server move rules locally so the client only highlights moves that should be clickable.
+   */
   const computeValidMoves = (state, playerIndex) => {
     const player = state?.players?.[playerIndex];
     const dice = state?.diceValue;
@@ -1047,6 +1151,9 @@ const Game = (() => {
     return isShieldField(boardPosition);
   };
 
+  /**
+   * Wire the page once and then let socket events drive all stateful updates.
+   */
   const init = () => {
     gameInfo = SocketManager.getGameInfo();
     if (!gameInfo) {

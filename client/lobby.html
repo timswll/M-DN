@@ -1,85 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperMensch – Lobby</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <nav class="site-nav">
-    <a href="index.html" class="nav-brand">
-      <span class="brand-mark">◈</span>
-      <span>SuperMensch</span>
-    </a>
-    <div class="nav-links">
-      <a href="index.html">Start</a>
-      <a href="rules.html">Regeln</a>
-      <a href="about.html">Projekt</a>
-      <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
-    </div>
-  </nav>
-  <div class="nav-spacer"></div>
-
-  <main class="shell page-stack">
-    <section class="glass-card page-hero">
-      <p class="eyebrow">Lobby</p>
-      <h1 class="gradient-title">Spiel erstellen oder beitreten</h1>
-      <p class="page-copy">
-        Der Gastgeber erstellt den Raum, die anderen treten per sechsstelligen Code bei.
-      </p>
-    </section>
-
-    <section class="glass-card">
-      <div class="form-group">
-        <label for="player-name">Spielername</label>
-        <input
-          type="text"
-          id="player-name"
-          class="form-input"
-          placeholder="Dein Name"
-          maxlength="20"
-          required
-        >
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperMensch – Lobby</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <nav class="site-nav">
+      <a href="index.html" class="nav-brand">
+        <span class="brand-mark">◈</span>
+        <span>SuperMensch</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Start</a>
+        <a href="rules.html">Regeln</a>
+        <a href="about.html">Projekt</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
       </div>
-    </section>
+    </nav>
+    <div class="nav-spacer"></div>
 
-    <section class="panel-grid">
-      <article class="glass-card action-card">
-        <span class="feature-label">Neu</span>
-        <h2>Neues Spiel erstellen</h2>
-        <p>Reserviere eine Lobby und teile den Spielcode direkt mit deinen Mitspielern.</p>
-        <button class="btn btn-primary" id="create-game-btn">Spiel erstellen</button>
-      </article>
+    <main class="shell page-stack">
+      <section class="glass-card page-hero">
+        <p class="eyebrow">Lobby</p>
+        <h1 class="gradient-title">Spiel erstellen oder beitreten</h1>
+        <p class="page-copy">
+          Der Gastgeber erstellt den Raum, die anderen treten per sechsstelligen Code bei.
+        </p>
+      </section>
 
-      <article class="glass-card action-card">
-        <span class="feature-label">Code</span>
-        <h2>Bestehendem Spiel beitreten</h2>
-        <p>Gib den Code der Lobby ein und verbinde dich mit der laufenden Runde.</p>
+      <section class="glass-card">
         <div class="form-group">
-          <label for="game-id-input">Spielcode</label>
+          <label for="player-name">Spielername</label>
           <input
             type="text"
-            id="game-id-input"
+            id="player-name"
             class="form-input"
-            placeholder="ABC123"
-            maxlength="6"
-          >
+            placeholder="Dein Name"
+            maxlength="20"
+            required
+          />
         </div>
-        <button class="btn btn-secondary" id="join-game-btn">Beitreten</button>
-      </article>
-    </section>
+      </section>
 
-    <div class="error-message" id="error-message" aria-live="polite"></div>
-  </main>
+      <section class="panel-grid">
+        <article class="glass-card action-card">
+          <span class="feature-label">Neu</span>
+          <h2>Neues Spiel erstellen</h2>
+          <p>Reserviere eine Lobby und teile den Spielcode direkt mit deinen Mitspielern.</p>
+          <button class="btn btn-primary" id="create-game-btn">Spiel erstellen</button>
+        </article>
 
-  <footer class="site-footer">
-    <p>&copy; 2026 SuperMensch Online</p>
-  </footer>
+        <article class="glass-card action-card">
+          <span class="feature-label">Code</span>
+          <h2>Bestehendem Spiel beitreten</h2>
+          <p>Gib den Code der Lobby ein und verbinde dich mit der laufenden Runde.</p>
+          <div class="form-group">
+            <label for="game-id-input">Spielcode</label>
+            <input
+              type="text"
+              id="game-id-input"
+              class="form-input"
+              placeholder="ABC123"
+              maxlength="6"
+            />
+          </div>
+          <button class="btn btn-secondary" id="join-game-btn">Beitreten</button>
+        </article>
+      </section>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/socket-manager.js"></script>
-  <script src="js/lobby.js"></script>
-  <script src="js/main.js"></script>
-</body>
+      <div class="error-message" id="error-message" aria-live="polite"></div>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 SuperMensch Online</p>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/socket-manager.js"></script>
+    <script src="js/lobby.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>
