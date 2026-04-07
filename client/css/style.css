@@ -95,6 +95,15 @@ body.modal-open {
   overflow: hidden;
 }
 
+body.modal-open .site-nav,
+body.modal-open .nav-spacer,
+body.modal-open main,
+body.modal-open .site-footer {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -108,7 +117,7 @@ body::before {
   z-index: 0;
 }
 
-body > :not(.madn-bg) {
+body > :not(.madn-bg):not(.winner-overlay):not(.game-modal-overlay) {
   position: relative;
   z-index: 1;
 }
@@ -1722,7 +1731,7 @@ textarea {
   justify-content: center;
   padding: 1rem;
   background: var(--overlay-bg);
-  z-index: 30;
+  z-index: 140;
   backdrop-filter: blur(12px);
 }
 
@@ -1759,10 +1768,13 @@ textarea {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  min-height: 100svh;
   overflow: auto;
   background: var(--overlay-bg);
-  z-index: 29;
+  z-index: 130;
   backdrop-filter: blur(14px);
+  isolation: isolate;
+  overscroll-behavior: contain;
 }
 
 .game-modal-overlay.visible {
@@ -1775,6 +1787,7 @@ textarea {
   display: grid;
   gap: 1rem;
   position: relative;
+  margin: auto;
   padding: 1.4rem;
   border-radius: 28px;
   border: 1px solid var(--glass-border);

@@ -177,6 +177,7 @@ const Game = (() => {
   let rerollLockTimer = null;
   let rerollLockedUntil = 0;
   let pendingLeaveHref = null;
+  let allowPageExit = false;
 
   const cellLookup = new Map();
 
@@ -679,6 +680,25 @@ const Game = (() => {
     pendingLeaveHref = null;
   };
 
+  const enablePageExit = () => {
+    allowPageExit = true;
+  };
+
+  const handleBeforeUnload = (event) => {
+    if (
+      allowPageExit ||
+      !gameInfo?.gameId ||
+      !gameState ||
+      ['finished', 'aborted'].includes(gameState.status)
+    ) {
+      return undefined;
+    }
+
+    event.preventDefault();
+    event.returnValue = '';
+    return '';
+  };
+
   const openRulesModal = (event) => {
     event.preventDefault();
     const rulesOverlay = document.getElementById('game-rules-overlay');
@@ -690,7 +710,7 @@ const Game = (() => {
     document.body.classList.add('modal-open');
   };
 
-  const openLeaveWarning = (event, href, label) => {
+  const openLeaveWarning = (event, href, label, options = {}) => {
     event.preventDefault();
     const warningOverlay = document.getElementById('game-warning-overlay');
     const title = document.getElementById('game-warning-title');
@@ -700,9 +720,11 @@ const Game = (() => {
 
     closeGamePopups();
     pendingLeaveHref = href;
-    title.textContent = `Zu ${label} wechseln?`;
-    copy.textContent = `Wenn du jetzt zu "${label}" wechselst, verlässt du die laufende Partie und wirst aus dem aktuellen Spiel entfernt.`;
-    confirm.textContent = `Weiter zu ${label}`;
+    title.textContent = options.title || `Zu ${label} wechseln?`;
+    copy.textContent =
+      options.copy ||
+      `Wenn du jetzt zu "${label}" wechselst, verlässt du die laufende Partie und wirst aus dem aktuellen Spiel entfernt.`;
+    confirm.textContent = options.confirmLabel || `Weiter zu ${label}`;
     warningOverlay.classList.add('visible');
     warningOverlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
@@ -718,6 +740,7 @@ const Game = (() => {
       socket.emit('leave-game', { gameId: gameInfo.gameId });
     }
 
+    enablePageExit();
     SocketManager.clearGameInfo();
     window.location.href = pendingLeaveHref;
   };
@@ -985,6 +1008,7 @@ const Game = (() => {
       if (remaining <= 0) {
         clearInterval(winnerCountdownTimer);
         winnerCountdownTimer = null;
+        enablePageExit();
         SocketManager.clearGameInfo();
         window.location.href = 'index.html';
       }
@@ -997,6 +1021,7 @@ const Game = (() => {
           clearInterval(winnerCountdownTimer);
           winnerCountdownTimer = null;
         }
+        enablePageExit();
         SocketManager.clearGameInfo();
         window.location.href = 'index.html';
       };
@@ -1026,6 +1051,7 @@ const Game = (() => {
     showDiceStatusToast(message, 1800);
 
     window.setTimeout(() => {
+      enablePageExit();
       SocketManager.clearGameInfo();
       window.location.href = 'index.html';
     }, 1800);
@@ -1172,6 +1198,7 @@ const Game = (() => {
 
     const rollButton = document.getElementById('roll-dice-btn');
     const dice = document.getElementById('dice');
+    const homeLink = document.getElementById('game-nav-home');
     const rulesLink = document.getElementById('game-nav-rules');
     const lobbyLink = document.getElementById('game-nav-lobby');
     const projectLink = document.getElementById('game-nav-project');
@@ -1191,6 +1218,16 @@ const Game = (() => {
 
     if (rulesLink) {
       rulesLink.addEventListener('click', openRulesModal);
+    }
+
+    if (homeLink) {
+      homeLink.addEventListener('click', (event) => {
+        openLeaveWarning(event, homeLink.href, 'Startseite', {
+          title: 'Spiel wirklich beenden?',
+          copy: 'Wenn du zur Startseite zurückgehst, verlässt du die laufende Partie und wirst aus dem aktuellen Spiel entfernt.',
+          confirmLabel: 'Spiel beenden',
+        });
+      });
     }
 
     if (lobbyLink) {
@@ -1238,6 +1275,8 @@ const Game = (() => {
         closeGamePopups();
       }
     });
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     socket.on('connect', () => {
       gameInfo = SocketManager.getGameInfo() || gameInfo;
