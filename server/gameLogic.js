@@ -545,6 +545,12 @@ class Game {
     }
 
     if (field.type === 'risk') {
+      this.pendingAction = {
+        type: 'risk_roll',
+        playerIndex,
+        pieceIndex,
+      };
+
       return {
         effects: [
           {
@@ -555,11 +561,7 @@ class Game {
         ],
         captures: [],
         extraTurn: false,
-        pendingAction: {
-          type: 'risk_roll',
-          playerIndex,
-          pieceIndex,
-        },
+        pendingAction: this.pendingAction,
       };
     }
 
