@@ -279,6 +279,7 @@ Jeder Zug wird vor der Ausführung vom Server validiert:
 - Clients erhalten nur eine serialisierte Kopie via `getState()`
 - Ungültige Socket-Events werden mit `error`-Events beantwortet
 - Doppeltes Würfeln pro Zug wird verhindert (`diceRolled`-Flag)
+- Nach einer Stunde ohne Bewegung im Spiel bricht das Spiel ab und jeder Spieler kommt zurück zum Start
 
 ### 5. Verbindungsmanagement
 
