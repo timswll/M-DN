@@ -11,11 +11,18 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 - [HTTP API-Spezifikation](#http-api-spezifikation)
 - [WebSocket Events (Socket.io)](#websocket-events-socketio)
 - [Cheat Prevention](#cheat-prevention)
+- [Tests](#tests)
 - [Spielregeln](#spielregeln)
 
 ## Features
 
 - **Echtzeit-Multiplayer**: 2–4 Spieler pro Raum über Socket.io
+- **Bot-Spieler**: Beim Spielstart können fehlende Plätze automatisch mit KI-Bots aufgefüllt werden. Bots würfeln, ziehen und tauschen selbstständig mit einer kurzen Verzögerung, sodass auch mit nur einem menschlichen Spieler eine vollständige 4-Spieler-Partie möglich ist.
+- **Superfelder**: Vier besondere Felder auf dem Spielbrett sorgen für zusätzliche Taktik:
+  - 🎲 **Extra-Wurf-Feld** (Position 3) – Bei Landung erhält man sofort einen weiteren Wurf.
+  - 🔄 **Tausch-Feld** (Position 13) – Die eigene Figur darf mit einer beliebigen gegnerischen Brettfigur getauscht werden.
+  - 🛡️ **Schutzfeld** (Position 23) – Figuren auf diesem Feld können nicht geschlagen werden.
+  - ⚠️ **Risiko-Feld** (Position 33) – Ein Zusatzwurf entscheidet: 1 = zurück ins Haus, 2–3 = Felder zurück, 4–6 = Felder vor.
 - **Responsive Design**: Spielbar auf Desktop, Tablet und Smartphone (Touch-fähig)
 - **Dark/Light Theme**: Umschaltbares Design, Auswahl wird in `localStorage` gespeichert
 - **Cheat Prevention**: Würfel und Zugvalidierung ausschließlich server-seitig
@@ -30,6 +37,7 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 | Frontend   | HTML5, CSS3 (Container Queries, clamp()), ES6+ |
 | Backend    | Node.js, Express.js                            |
 | Echtzeit   | Socket.io                                      |
+| Tests      | Jest, Supertest                                 |
 | Persistenz | localStorage (Client-seitig)                   |
 
 ## Installation & Start
@@ -124,10 +132,29 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 │       ├── lobby.js       # Lobby-Logik (Erstellen/Beitreten)
 │       ├── waiting.js     # Warteraum-Logik (Spielerliste, Start)
 │       └── game.js        # Spielbrett-Rendering, Würfel, Züge
+├── tests/
+│   └── server/
+│       ├── gameLogic.test.js  # Tests für Spiellogik, Bots und Superfelder
+│       └── validation.test.js # Tests für Eingabevalidierung
 ├── package.json           # Root-Scripts
 ├── .gitignore
 └── README.md
 ```
+
+## Tests
+
+Das Projekt verwendet **Jest** als Test-Framework und **Supertest** für HTTP-Integrationstests. Die Tests decken Spiellogik, Eingabevalidierung und Superfeld-Mechaniken ab.
+
+### Tests ausführen
+
+```bash
+npm test
+```
+
+### Testbereiche
+
+- **Spiellogik** (`tests/server/gameLogic.test.js`): Bot-Auffüllung, Schlagen auf dem Startfeld, Schutzfelder, Extra-Wurf-Feld, Tausch-Feld, Risiko-Feld und Superfeld-Metadaten
+- **Validierung** (`tests/server/validation.test.js`): Spielernamen-Validierung (inkl. Umlaute), HTML-Injection-Schutz, Spiel-ID-Format, Zugvalidierung (legale/illegale Züge, falsche Spieler)
 
 ## HTTP API-Spezifikation
 
@@ -225,7 +252,7 @@ Gibt Informationen zu einem bestimmten Spiel zurück.
 | ---------------- | ------------------------ | ---------------------------------------- |
 | `create-game`    | `{ playerName }`         | Neues Spiel erstellen                    |
 | `join-game`      | `{ gameId, playerName }` | Bestehendem Spiel beitreten              |
-| `start-game`     | `{ gameId }`             | Spiel starten (nur Game Master)          |
+| `start-game`     | `{ gameId, fillWithBots? }` | Spiel starten (nur Game Master, optional mit Bots auffüllen) |
 | `roll-dice`      | `{ gameId }`             | Würfeln (nur aktueller Spieler)          |
 | `move-piece`     | `{ gameId, pieceIndex }` | Figur bewegen (0–3)                      |
 | `leave-game`     | `{ gameId }`             | Spiel verlassen                          |
