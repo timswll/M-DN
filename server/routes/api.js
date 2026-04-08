@@ -1,6 +1,6 @@
 const express = require('express');
-const { games } = require('../gameLogic');
-const { Game } = require('../gameLogic');
+const crypto = require('crypto');
+const { games, Game } = require('../gameLogic');
 const { nameValidationMiddleware, gameIdValidationMiddleware } = require('../validation');
 
 const router = express.Router();
@@ -16,15 +16,17 @@ router.get('/health', (_req, res) => {
   });
 });
 
-/**
- * Create a game over REST for tooling/tests; gameplay itself still happens over sockets.
- */
-router.post('/games', nameValidationMiddleware, (req, res) => {
-  const { playerName } = req.body;
-  const game = new Game(null, playerName); // No socketId from REST; socket join later
-  games.set(game.id, game);
-  res.status(201).json({ gameId: game.id, playerId: game.players[0].id });
-});
+if (process.env.NODE_ENV === 'test') {
+  /**
+   * Create a game over REST for automated tests only.
+   */
+  router.post('/games', nameValidationMiddleware, (req, res) => {
+    const { playerName } = req.body;
+    const game = new Game(`rest:${crypto.randomUUID()}`, playerName);
+    games.set(game.id, game);
+    res.status(201).json({ gameId: game.id, playerId: game.players[0].publicId });
+  });
+}
 
 /**
  * List waiting rooms that can still be joined.
@@ -32,7 +34,7 @@ router.post('/games', nameValidationMiddleware, (req, res) => {
 router.get('/games', (_req, res) => {
   const joinable = [];
   for (const game of games.values()) {
-    if (game.status === 'waiting') {
+    if (game.status === 'waiting' && game.players.length < game.maxPlayers) {
       joinable.push({
         gameId: game.id,
         playerCount: game.players.length,

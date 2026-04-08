@@ -11,19 +11,38 @@ test.beforeEach(() => {
 });
 
 test('validatePlayerName trims valid names and keeps umlauts', () => {
-  const sanitized = validatePlayerName('  Jörg  ');
+  const result = validatePlayerName('  Jörg  ');
 
-  assert.equal(sanitized, 'Jörg');
+  assert.deepEqual(result, {
+    valid: true,
+    sanitized: 'Jörg',
+  });
 });
 
 test('validatePlayerName rejects HTML-like input', () => {
-  assert.throws(() => validatePlayerName('<script>'), /must not contain HTML/);
+  assert.deepEqual(validatePlayerName('<script>'), {
+    valid: false,
+    reason: 'Player name must not contain HTML characters',
+  });
+});
+
+test('validatePlayerName enforces a minimum length of two characters', () => {
+  assert.deepEqual(validatePlayerName('x'), {
+    valid: false,
+    reason: 'Player name must be at least 2 characters',
+  });
 });
 
 test('validateGameId accepts six uppercase alphanumeric characters', () => {
-  assert.equal(validateGameId('AB12CD'), true);
-  assert.equal(validateGameId('ab12cd'), false);
-  assert.equal(validateGameId('ABCDE'), false);
+  assert.deepEqual(validateGameId('AB12CD'), { valid: true });
+  assert.deepEqual(validateGameId('ab12cd'), {
+    valid: false,
+    reason: 'Invalid game ID format',
+  });
+  assert.deepEqual(validateGameId('ABCDE'), {
+    valid: false,
+    reason: 'Invalid game ID format',
+  });
 });
 
 test('validateMove approves bringing a piece out of base on a six', () => {
@@ -34,10 +53,7 @@ test('validateMove approves bringing a piece out of base on a six', () => {
 
   const result = validateMove(game, game.players[0].id, 0, 6);
 
-  assert.deepEqual(result, {
-    valid: true,
-    targetPosition: 0,
-  });
+  assert.deepEqual(result, { valid: true });
 });
 
 test('validateMove rejects requests from the wrong player', () => {

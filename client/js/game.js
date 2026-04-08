@@ -1,11 +1,12 @@
 'use strict';
 
 const Game = (() => {
-  const BOARD_SIZE = 40;
-  const PIECES_PER_PLAYER = 4;
+  const SHARED_CONFIG = globalThis.GameConfig || {};
+  const BOARD_SIZE = SHARED_CONFIG.BOARD_SIZE || 40;
+  const PIECES_PER_PLAYER = SHARED_CONFIG.PIECES_PER_PLAYER || 4;
   const MAX_LOG_ENTRIES = 18;
   const NO_MOVE_NOTICE_MS = 3000;
-  const COLORS = ['green', 'red', 'blue', 'yellow'];
+  const COLORS = SHARED_CONFIG.COLORS || ['green', 'red', 'blue', 'yellow'];
 
   const PATH_COORDS = [
     [0, 6],
@@ -50,7 +51,7 @@ const Game = (() => {
     [0, 5],
   ];
 
-  const START_POSITIONS = {
+  const START_POSITIONS = SHARED_CONFIG.COLOR_START_POSITIONS || {
     green: 0,
     yellow: 10,
     blue: 20,
@@ -118,44 +119,9 @@ const Game = (() => {
     yellow: '#ffd600',
   };
 
-  const SUPER_FIELDS = new Map([
-    [
-      3,
-      {
-        type: 'extra_roll',
-        title: 'Extra Wurf-Feld',
-        badge: '+1',
-        description: 'Bei Landung bekommst du sofort einen weiteren Wurf.',
-      },
-    ],
-    [
-      13,
-      {
-        type: 'swap',
-        title: 'Tausch-Feld',
-        badge: '⇄',
-        description: 'Wähle danach eine gegnerische Brettfigur und tausche die Position.',
-      },
-    ],
-    [
-      23,
-      {
-        type: 'shield',
-        title: 'Schutzfeld',
-        badge: 'S',
-        description: 'Auf diesem Feld kann deine Figur nicht geschmissen werden.',
-      },
-    ],
-    [
-      33,
-      {
-        type: 'risk',
-        title: 'Risiko-Feld',
-        badge: '?',
-        description: 'Würfle einmal zusätzlich: 1 ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
-      },
-    ],
-  ]);
+  const SUPER_FIELDS = new Map(
+    (SHARED_CONFIG.SUPER_FIELDS || []).map((field) => [field.position, field])
+  );
 
   const DICE_PIP_LAYOUTS = {
     1: [5],
@@ -408,6 +374,10 @@ const Game = (() => {
       if (piece.isBase) slotIndex++;
     }
 
+    console.warn('Base piece could not be matched to a base slot', {
+      playerColor: player?.color,
+      targetPiece,
+    });
     return 0;
   };
 
@@ -608,7 +578,10 @@ const Game = (() => {
     }
 
     const update = () => {
-      timer.textContent = formatElapsed(Date.now() - gameState.startedAt);
+      const elapsed = Date.now() - gameState.startedAt;
+      const formatted = formatElapsed(elapsed);
+      timer.textContent = formatted;
+      timer.setAttribute('datetime', toDurationString(elapsed));
     };
 
     update();
@@ -627,6 +600,24 @@ const Game = (() => {
     }
 
     return `${pad(minutes)}:${pad(seconds)}`;
+  };
+
+  const toDurationString = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    let duration = 'PT';
+
+    if (hours > 0) {
+      duration += `${hours}H`;
+    }
+    if (minutes > 0) {
+      duration += `${minutes}M`;
+    }
+    duration += `${seconds}S`;
+
+    return duration;
   };
 
   const isRollLocked = () => Date.now() < rerollLockedUntil;
@@ -781,7 +772,7 @@ const Game = (() => {
     return formatElapsed(Date.now() - gameState.startedAt);
   };
 
-  const getCurrentPlayerId = () => socket?.id || gameInfo?.playerId || null;
+  const getCurrentPlayerId = () => gameInfo?.playerId || null;
 
   const checkIsMyTurn = () => {
     if (!gameState?.players) return false;
@@ -1293,11 +1284,19 @@ const Game = (() => {
     socket.on('player-left', onPlayerLeft);
     socket.on('error', onError);
 
-    socket.emit('get-game-state', { gameId: gameInfo.gameId }, (state) => {
-      if (state) {
-        renderGameState(state);
+    socket.emit(
+      'get-game-state',
+      {
+        gameId: gameInfo.gameId,
+        playerId: gameInfo.playerId,
+        reconnectToken: gameInfo.reconnectToken,
+      },
+      (state) => {
+        if (state) {
+          renderGameState(state);
+        }
       }
-    });
+    );
   };
 
   return { init };

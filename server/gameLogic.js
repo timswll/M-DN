@@ -6,56 +6,45 @@
  *  - Each player has 4 base slots and 4 home slots
  *  - Main path now runs clockwise on the rendered board
  */
-
-const COLORS = ['green', 'red', 'blue', 'yellow'];
-const COLOR_START_POSITIONS = {
-  green: 0,
-  yellow: 10,
-  blue: 20,
-  red: 30,
-};
-const BOARD_SIZE = 40;
-const PIECES_PER_PLAYER = 4;
-
-const SUPER_FIELDS = [
-  {
-    type: 'extra_roll',
-    position: 3,
-    title: 'Extra Wurf-Feld',
-    description: 'Bei Landung bekommst du sofort einen weiteren Wurf.',
-  },
-  {
-    type: 'swap',
-    position: 13,
-    title: 'Tausch-Feld',
-    description:
-      'Bei Landung darfst du deine aktive Figur mit einer gegnerischen Brettfigur tauschen.',
-  },
-  {
-    type: 'shield',
-    position: 23,
-    title: 'Schutzfeld',
-    description: 'Figuren auf diesem Feld können nicht geschmissen werden.',
-  },
-  {
-    type: 'risk',
-    position: 33,
-    title: 'Risiko-Feld',
-    description: 'Würfle einmal zusätzlich: 1 zurück ins Haus, 2-3 Felder zurück, 4-6 Felder vor.',
-  },
-];
+const crypto = require('crypto');
+const {
+  COLORS,
+  COLOR_START_POSITIONS,
+  BOARD_SIZE,
+  PIECES_PER_PLAYER,
+  SUPER_FIELDS,
+} = require('../client/js/shared-game-config');
 
 const SUPER_FIELD_BY_POSITION = new Map(SUPER_FIELDS.map((field) => [field.position, field]));
 
 /** Map of gameId -> Game */
 const games = new Map();
 
-const generateId = () => {
+const generateRawId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let id = '';
   for (let i = 0; i < 6; i++) {
     id += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  return id;
+};
+
+const generateId = (store = games) => {
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const id = generateRawId();
+    if (!store.has(id)) {
+      return id;
+    }
+  }
+
+  throw new Error('Unable to allocate a unique game ID');
+};
+
+const ensurePlayerId = (id) => {
+  if (typeof id !== 'string' || id.trim().length === 0) {
+    throw new Error('Player ID must be a non-empty string');
+  }
+
   return id;
 };
 
@@ -68,7 +57,9 @@ const createPieces = () =>
   }));
 
 const createPlayer = (id, name, color, isBot = false) => ({
-  id,
+  id: ensurePlayerId(id),
+  publicId: crypto.randomUUID(),
+  reconnectToken: crypto.randomUUID(),
   name,
   color,
   isBot,
@@ -220,21 +211,12 @@ class Game {
   }
 
   _findBoardPiece(boardPosition) {
-    for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
-      const player = this.players[playerIndex];
-      for (let pieceIndex = 0; pieceIndex < player.pieces.length; pieceIndex++) {
-        const piece = player.pieces[pieceIndex];
-        if (!piece.isBase && !piece.isHome && piece.position === boardPosition) {
-          return { playerIndex, pieceIndex, piece };
-        }
-      }
-    }
-    return null;
+    return this._findBoardPieceMatching(boardPosition);
   }
 
-  _findOpponentBoardPiece(movingPlayerIndex, boardPosition) {
+  _findBoardPieceMatching(boardPosition, excludePlayerIndex = null) {
     for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
-      if (playerIndex === movingPlayerIndex) continue;
+      if (playerIndex === excludePlayerIndex) continue;
 
       const player = this.players[playerIndex];
       for (let pieceIndex = 0; pieceIndex < player.pieces.length; pieceIndex++) {
@@ -244,7 +226,6 @@ class Game {
         }
       }
     }
-
     return null;
   }
 
@@ -354,7 +335,7 @@ class Game {
       return null;
     }
 
-    const occupant = this._findOpponentBoardPiece(movingPlayerIndex, boardPosition);
+    const occupant = this._findBoardPieceMatching(boardPosition, movingPlayerIndex);
     if (!occupant) {
       return null;
     }
@@ -385,7 +366,7 @@ class Game {
     };
   }
 
-  _swapCandidates(playerIndex) {
+  getSwapCandidates(playerIndex) {
     const candidates = [];
 
     for (let otherIndex = 0; otherIndex < this.players.length; otherIndex++) {
@@ -397,7 +378,7 @@ class Game {
           candidates.push({
             playerIndex: otherIndex,
             pieceIndex,
-            playerId: otherPlayer.id,
+            playerId: otherPlayer.publicId,
           });
         }
       });
@@ -406,11 +387,7 @@ class Game {
     return candidates;
   }
 
-  getSwapCandidates(playerIndex) {
-    return this._swapCandidates(playerIndex);
-  }
-
-  _resolveRiskField(playerIndex, piece, riskRoll = Math.floor(Math.random() * 6) + 1) {
+  _resolveRiskField(playerIndex, piece, riskRoll) {
     const effects = [
       {
         type: 'risk_roll',
@@ -510,7 +487,7 @@ class Game {
     }
 
     if (field.type === 'swap') {
-      const candidates = this._swapCandidates(playerIndex);
+      const candidates = this.getSwapCandidates(playerIndex);
       if (candidates.length === 0) {
         return {
           effects: [
@@ -626,18 +603,18 @@ class Game {
    */
   resolveRiskRoll(playerIndex) {
     if (!this.pendingAction || this.pendingAction.type !== 'risk_roll') {
-      throw new Error('Kein Risiko-Wurf ist aktuell offen');
+      throw new Error('No risk roll is currently pending');
     }
 
     if (this.pendingAction.playerIndex !== playerIndex) {
-      throw new Error('Nur der aktive Spieler darf den Risiko-Wurf ausführen');
+      throw new Error('Only the active player can resolve the risk roll');
     }
 
     const pieceIndex = this.pendingAction.pieceIndex;
     const player = this.players[playerIndex];
     const piece = player?.pieces?.[pieceIndex];
     if (!piece || piece.isBase || piece.isHome) {
-      throw new Error('Die Risiko-Figur ist nicht mehr auf dem Hauptpfad');
+      throw new Error('The risk piece is no longer on the shared board');
     }
 
     const riskRoll = Math.floor(Math.random() * 6) + 1;
@@ -670,7 +647,9 @@ class Game {
       throw new Error('The active piece can no longer be swapped');
     }
 
-    const targetPlayerIndex = this.players.findIndex((player) => player.id === targetPlayerId);
+    const targetPlayerIndex = this.players.findIndex(
+      (player) => player.publicId === targetPlayerId
+    );
     if (targetPlayerIndex === -1 || targetPlayerIndex === playerIndex) {
       throw new Error('Invalid swap target');
     }
@@ -712,7 +691,7 @@ class Game {
     const pendingAction = this.pendingAction
       ? {
           type: this.pendingAction.type,
-          playerId: this.players[this.pendingAction.playerIndex]?.id || null,
+          playerId: this.players[this.pendingAction.playerIndex]?.publicId || null,
           pieceIndex: this.pendingAction.pieceIndex,
         }
       : null;
@@ -720,7 +699,7 @@ class Game {
     return {
       id: this.id,
       players: this.players.map((player) => ({
-        id: player.id,
+        id: player.publicId,
         name: player.name,
         color: player.color,
         isBot: Boolean(player.isBot),
@@ -733,7 +712,7 @@ class Game {
       winner: this.winner ? { name: this.winner.name, color: this.winner.color } : null,
       maxPlayers: this.maxPlayers,
       rollAttempts: this.rollAttempts,
-      creatorId: this.creatorId,
+      creatorId: this.players.find((player) => player.id === this.creatorId)?.publicId || null,
       startedAt: this.startedAt,
       lastActionAt: this.lastActionAt,
       pendingAction,

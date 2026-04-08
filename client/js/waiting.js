@@ -56,6 +56,22 @@ const Waiting = (() => {
     // socket-manager already emits reconnect-game on connect for waiting/game pages
     // Re-read gameInfo in case it was updated by socket-manager
     gameInfo = SocketManager.getGameInfo();
+
+    if (gameInfo?.gameId) {
+      socket.emit(
+        'get-game-state',
+        {
+          gameId: gameInfo.gameId,
+          playerId: gameInfo.playerId,
+          reconnectToken: gameInfo.reconnectToken,
+        },
+        (state) => {
+          if (state) {
+            handleGameState(state);
+          }
+        }
+      );
+    }
   };
 
   /**
@@ -65,11 +81,10 @@ const Waiting = (() => {
     if (!state || !state.players) return;
 
     // Determine if current user is the creator
-    const myId = socket.id;
-    const myStoredId = gameInfo.playerId;
-    isCreator = state.creatorId === myId || state.creatorId === myStoredId;
+    const myPublicId = gameInfo?.playerId || null;
+    isCreator = state.creatorId === myPublicId;
 
-    renderPlayerList(state.players, myId, myStoredId);
+    renderPlayerList(state.players, myPublicId);
     updateStartButton(state.players.length);
     updateStatus(state.players.length);
 
@@ -79,7 +94,7 @@ const Waiting = (() => {
     }
   };
 
-  const renderPlayerList = (players, myId, myStoredId) => {
+  const renderPlayerList = (players, myPublicId) => {
     const listEl = document.getElementById('player-list');
     if (!listEl) return;
 
@@ -97,7 +112,7 @@ const Waiting = (() => {
       nameSpan.className = 'player-name';
       nameSpan.textContent = player.name;
 
-      const isMe = player.id === myId || player.id === myStoredId;
+      const isMe = player.id === myPublicId;
       if (isMe) {
         nameSpan.classList.add('is-self');
         nameSpan.textContent += ' (Du)';
@@ -165,9 +180,7 @@ const Waiting = (() => {
     Utils.showStatus('status-message', `${name} ist beigetreten!`);
     // Use the players list from the event directly
     if (data.players) {
-      const myId = socket.id;
-      const myStoredId = gameInfo ? gameInfo.playerId : null;
-      renderPlayerList(data.players, myId, myStoredId);
+      renderPlayerList(data.players, gameInfo ? gameInfo.playerId : null);
       updateStartButton(data.players.length);
       updateStatus(data.players.length);
     }

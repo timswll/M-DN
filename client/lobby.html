@@ -19,8 +19,6 @@
         <button class="theme-toggle" id="theme-toggle" aria-label="Design wechseln">☀</button>
       </div>
     </nav>
-    <div class="nav-spacer"></div>
-
     <main class="shell page-stack">
       <section class="glass-card page-hero">
         <p class="eyebrow">Lobby</p>
@@ -38,7 +36,9 @@
             id="player-name"
             class="form-input"
             placeholder="Dein Name"
+            minlength="2"
             maxlength="20"
+            autocomplete="nickname"
             required
           />
         </div>
@@ -63,7 +63,11 @@
               id="game-id-input"
               class="form-input"
               placeholder="ABC123"
+              minlength="6"
               maxlength="6"
+              pattern="[A-Z0-9]{6}"
+              title="Bitte einen 6-stelligen Code aus Großbuchstaben und Zahlen eingeben"
+              autocomplete="off"
             />
           </div>
           <button class="btn btn-secondary" id="join-game-btn">Beitreten</button>

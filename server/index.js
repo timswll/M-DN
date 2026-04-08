@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const { Game, games } = require('./gameLogic');
 const { validatePlayerName, validateGameId, validateMove } = require('./validation');
@@ -19,7 +20,7 @@ app.use(express.static(path.join(__dirname, '..', 'client')));
 app.use('/api', apiRouter);
 
 // ── Socket tracking ────────────────────────────────────────────────────
-// socketId -> { gameId, playerIndex }
+// socketId -> { gameId }
 const socketMap = new Map();
 
 // Grace period timers for disconnections during page navigation
@@ -36,6 +37,64 @@ const GAME_INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
  * Find the player index for a socket inside a game.
  */
 const findPlayerIndex = (game, socketId) => game.players.findIndex((p) => p.id === socketId);
+
+const getSocketEntry = (socketId) => socketMap.get(socketId) || null;
+
+const assertSocketCanEnterGame = (socket, targetGameId = null) => {
+  const entry = getSocketEntry(socket.id);
+  if (!entry) {
+    return;
+  }
+
+  if (targetGameId && entry.gameId === targetGameId) {
+    return;
+  }
+
+  if (!games.has(entry.gameId)) {
+    socketMap.delete(socket.id);
+    return;
+  }
+
+  throw new Error('This socket is already assigned to another game');
+};
+
+const getMemberGame = (socket, requestedGameId, options = {}) => {
+  const { requirePlaying = false, requireActiveTurn = false } = options;
+  const entry = getSocketEntry(socket.id);
+
+  if (!entry || !requestedGameId || entry.gameId !== requestedGameId) {
+    throw new Error('You are not in this game');
+  }
+
+  const gameIdResult = validateGameId(requestedGameId);
+  if (!gameIdResult.valid) {
+    throw new Error(gameIdResult.reason);
+  }
+
+  const game = games.get(requestedGameId);
+  if (!game) {
+    throw new Error('Game not found');
+  }
+
+  const playerIndex = findPlayerIndex(game, socket.id);
+  if (playerIndex === -1) {
+    throw new Error('You are not in this game');
+  }
+
+  if (requirePlaying && game.status !== 'playing') {
+    throw new Error('Game is not in progress');
+  }
+
+  if (requireActiveTurn && playerIndex !== game.currentPlayerIndex) {
+    throw new Error('It is not your turn');
+  }
+
+  return { game, playerIndex };
+};
+
+const emitSocketError = (socket, err) => {
+  socket.emit('error', { message: err.message });
+};
 
 const clearBotTimer = (gameId) => {
   const timer = botTimers.get(gameId);
@@ -234,101 +293,117 @@ const resolveBotSwap = (game) => {
  * Drive the full bot turn loop, including dice rolls, delayed feedback and pending special actions.
  */
 const runBotTurn = (gameId) => {
-  const game = games.get(gameId);
-  if (!game || game.status !== 'playing') {
-    clearBotTimer(gameId);
-    return;
-  }
-
-  const playerIndex = game.currentPlayerIndex;
-  const botPlayer = game.players[playerIndex];
-  if (!botPlayer || !botPlayer.isBot) {
-    return;
-  }
-
-  if (game.pendingAction?.type === 'swap') {
-    resolveBotSwap(game);
-    return;
-  }
-
-  if (game.pendingAction?.type === 'risk_roll') {
-    const riskOutcome = game.resolveRiskRoll(playerIndex);
-    markGameActivity(game);
-
-    io.to(game.id).emit('risk-roll-resolved', {
-      playerIndex,
-      pieceIndex: riskOutcome.pieceIndex,
-      roll: riskOutcome.roll,
-      captures: riskOutcome.captures,
-      effects: riskOutcome.effects,
-      state: game.getState(),
-    });
-
-    applyTurnTransition(game, false);
-    return;
-  }
-
-  if (!game.diceRolled) {
-    const value = game.rollDice();
-    markGameActivity(game);
-    const validMoves = game.getValidMoves(playerIndex);
-
-    io.to(game.id).emit('dice-rolled', {
-      value,
-      validMoves,
-      playerId: botPlayer.id,
-      rollAttempts: game.rollAttempts,
-      canRollAgain: !game.diceRolled,
-      state: game.getState(),
-    });
-
-    const allInBase = game.allPiecesInBase(playerIndex);
-    const noMoves = validMoves.length === 0;
-
-    if (noMoves) {
-      if (allInBase && value !== 6 && game.rollAttempts < 3) {
-        maybeScheduleBotTurn(game);
-      } else {
-        scheduleNoMoveTurnTransition(game);
-      }
+  try {
+    const game = games.get(gameId);
+    if (!game || game.status !== 'playing') {
+      clearBotTimer(gameId);
       return;
     }
 
-    maybeScheduleBotTurn(game);
-    return;
-  }
+    const playerIndex = game.currentPlayerIndex;
+    const botPlayer = game.players[playerIndex];
+    if (!botPlayer || !botPlayer.isBot) {
+      return;
+    }
 
-  const validMoves = game.getValidMoves(playerIndex);
-  if (validMoves.length === 0) {
+    if (game.pendingAction?.type === 'swap') {
+      resolveBotSwap(game);
+      markGameActivity(game);
+      return;
+    }
+
+    if (game.pendingAction?.type === 'risk_roll') {
+      const riskOutcome = game.resolveRiskRoll(playerIndex);
+      markGameActivity(game);
+
+      io.to(game.id).emit('risk-roll-resolved', {
+        playerIndex,
+        pieceIndex: riskOutcome.pieceIndex,
+        roll: riskOutcome.roll,
+        captures: riskOutcome.captures,
+        effects: riskOutcome.effects,
+        state: game.getState(),
+      });
+
+      applyTurnTransition(game, false);
+      return;
+    }
+
+    if (!game.diceRolled) {
+      const value = game.rollDice();
+      markGameActivity(game);
+      const validMoves = game.getValidMoves(playerIndex);
+
+      io.to(game.id).emit('dice-rolled', {
+        value,
+        validMoves,
+        playerId: botPlayer.publicId,
+        rollAttempts: game.rollAttempts,
+        canRollAgain: !game.diceRolled,
+        state: game.getState(),
+      });
+
+      const allInBase = game.allPiecesInBase(playerIndex);
+      const noMoves = validMoves.length === 0;
+
+      if (noMoves) {
+        if (allInBase && value !== 6 && game.rollAttempts < 3) {
+          maybeScheduleBotTurn(game);
+        } else {
+          scheduleNoMoveTurnTransition(game);
+        }
+        return;
+      }
+
+      maybeScheduleBotTurn(game);
+      return;
+    }
+
+    const validMoves = game.getValidMoves(playerIndex);
+    if (validMoves.length === 0) {
+      game.nextTurn();
+      io.to(game.id).emit('turn-changed', game.getState());
+      maybeScheduleBotTurn(game);
+      return;
+    }
+
+    const pieceIndex = validMoves[Math.floor(Math.random() * validMoves.length)];
+    const moveOutcome = game.movePiece(playerIndex, pieceIndex);
+    markGameActivity(game);
+
+    io.to(game.id).emit('piece-moved', {
+      playerIndex,
+      pieceIndex,
+      captures: moveOutcome.captures,
+      effects: moveOutcome.effects,
+      pendingAction: moveOutcome.pendingAction,
+      state: game.getState(),
+    });
+
+    if (game.status === 'finished') {
+      emitGameOver(game);
+      return;
+    }
+
+    if (moveOutcome.pendingAction) {
+      maybeScheduleBotTurn(game);
+      return;
+    }
+
+    applyTurnTransition(game, moveOutcome.extraTurn);
+  } catch (err) {
+    console.error(`Bot turn failed in game ${gameId}:`, err);
+    const game = games.get(gameId);
+    if (!game || game.status !== 'playing') {
+      return;
+    }
+
+    clearNoMoveTimer(game.id);
+    game.pendingAction = null;
     game.nextTurn();
     io.to(game.id).emit('turn-changed', game.getState());
     maybeScheduleBotTurn(game);
-    return;
   }
-
-  const pieceIndex = validMoves[Math.floor(Math.random() * validMoves.length)];
-  const moveOutcome = game.movePiece(playerIndex, pieceIndex);
-
-  io.to(game.id).emit('piece-moved', {
-    playerIndex,
-    pieceIndex,
-    captures: moveOutcome.captures,
-    effects: moveOutcome.effects,
-    pendingAction: moveOutcome.pendingAction,
-    state: game.getState(),
-  });
-
-  if (game.status === 'finished') {
-    emitGameOver(game);
-    return;
-  }
-
-  if (moveOutcome.pendingAction) {
-    maybeScheduleBotTurn(game);
-    return;
-  }
-
-  applyTurnTransition(game, moveOutcome.extraTurn);
 };
 
 // ── Socket.io handlers ────────────────────────────────────────────────
@@ -338,39 +413,52 @@ io.on('connection', (socket) => {
   // ── Create game ───────────────────────────────────────────────────
   socket.on('create-game', (data) => {
     try {
-      const name = validatePlayerName(data?.playerName);
+      assertSocketCanEnterGame(socket);
+      const nameResult = validatePlayerName(data?.playerName);
+      if (!nameResult.valid) {
+        throw new Error(nameResult.reason);
+      }
+
+      const name = nameResult.sanitized;
       const game = new Game(socket.id, name);
       games.set(game.id, game);
 
       socket.join(game.id);
-      socketMap.set(socket.id, { gameId: game.id, playerIndex: 0 });
+      socketMap.set(socket.id, { gameId: game.id });
 
       socket.emit('game-created', {
         gameId: game.id,
-        playerId: socket.id,
+        playerId: game.players[0].publicId,
+        reconnectToken: game.players[0].reconnectToken,
         players: game.getState().players,
       });
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
   // ── Join game ─────────────────────────────────────────────────────
   socket.on('join-game', (data) => {
     try {
-      const name = validatePlayerName(data?.playerName);
-      if (!validateGameId(data?.gameId)) {
-        throw new Error('Invalid game ID');
+      assertSocketCanEnterGame(socket);
+      const nameResult = validatePlayerName(data?.playerName);
+      if (!nameResult.valid) {
+        throw new Error(nameResult.reason);
+      }
+
+      const name = nameResult.sanitized;
+      const gameIdResult = validateGameId(data?.gameId);
+      if (!gameIdResult.valid) {
+        throw new Error(gameIdResult.reason);
       }
 
       const game = games.get(data.gameId);
       if (!game) throw new Error('Game not found');
 
       const player = game.addPlayer(socket.id, name);
-      const playerIndex = findPlayerIndex(game, socket.id);
 
       socket.join(game.id);
-      socketMap.set(socket.id, { gameId: game.id, playerIndex });
+      socketMap.set(socket.id, { gameId: game.id });
 
       io.to(game.id).emit('player-joined', {
         player: { name: player.name, color: player.color },
@@ -379,20 +467,19 @@ io.on('connection', (socket) => {
 
       socket.emit('game-joined', {
         gameId: game.id,
-        playerId: socket.id,
+        playerId: player.publicId,
+        reconnectToken: player.reconnectToken,
         players: game.getState().players,
       });
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
   // ── Start game ────────────────────────────────────────────────────
   socket.on('start-game', (data) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
-      const game = games.get(data.gameId);
-      if (!game) throw new Error('Game not found');
+      const { game } = getMemberGame(socket, data?.gameId);
       if (game.creatorId !== socket.id) throw new Error('Only the game creator can start the game');
       if (data?.fillWithBots) {
         game.addBotPlayers();
@@ -404,21 +491,17 @@ io.on('connection', (socket) => {
       io.to(game.id).emit('game-started', game.getState());
       maybeScheduleBotTurn(game);
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
   // ── Roll dice ─────────────────────────────────────────────────────
   socket.on('roll-dice', (data) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
-      const game = games.get(data.gameId);
-      if (!game) throw new Error('Game not found');
-      if (game.status !== 'playing') throw new Error('Game is not in progress');
-
-      const playerIndex = findPlayerIndex(game, socket.id);
-      if (playerIndex === -1) throw new Error('You are not in this game');
-      if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
+      const { game, playerIndex } = getMemberGame(socket, data?.gameId, {
+        requirePlaying: true,
+        requireActiveTurn: true,
+      });
       if (game.diceRolled) throw new Error('You have already rolled the dice');
 
       const value = game.rollDice();
@@ -428,7 +511,7 @@ io.on('connection', (socket) => {
       io.to(game.id).emit('dice-rolled', {
         value,
         validMoves,
-        playerId: socket.id,
+        playerId: game.players[playerIndex].publicId,
         rollAttempts: game.rollAttempts,
         canRollAgain: !game.diceRolled,
         state: game.getState(),
@@ -447,22 +530,19 @@ io.on('connection', (socket) => {
         }
       }
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
+  // ── Roll risk dice ────────────────────────────────────────────────
   socket.on('roll-risk-dice', (data) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
-      const game = games.get(data.gameId);
-      if (!game) throw new Error('Game not found');
-      if (game.status !== 'playing') throw new Error('Game is not in progress');
-
-      const playerIndex = findPlayerIndex(game, socket.id);
-      if (playerIndex === -1) throw new Error('You are not in this game');
-      if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
+      const { game, playerIndex } = getMemberGame(socket, data?.gameId, {
+        requirePlaying: true,
+        requireActiveTurn: true,
+      });
       if (game.pendingAction?.type !== 'risk_roll') {
-        throw new Error('Aktuell ist kein Risiko-Wurf offen');
+        throw new Error('No risk roll is currently pending');
       }
 
       const riskOutcome = game.resolveRiskRoll(playerIndex);
@@ -479,20 +559,16 @@ io.on('connection', (socket) => {
 
       applyTurnTransition(game, false);
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
   // ── Move piece ────────────────────────────────────────────────────
   socket.on('move-piece', (data) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
-      const game = games.get(data.gameId);
-      if (!game) throw new Error('Game not found');
-      if (game.status !== 'playing') throw new Error('Game is not in progress');
-
-      const playerIndex = findPlayerIndex(game, socket.id);
-      if (playerIndex === -1) throw new Error('You are not in this game');
+      const { game, playerIndex } = getMemberGame(socket, data?.gameId, {
+        requirePlaying: true,
+      });
 
       const moveResult = validateMove(game, socket.id, data.pieceIndex, game.diceValue);
       if (!moveResult.valid) throw new Error(moveResult.reason);
@@ -521,21 +597,17 @@ io.on('connection', (socket) => {
 
       applyTurnTransition(game, moveOutcome.extraTurn);
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
   // ── Complete swap action ──────────────────────────────────────────
   socket.on('select-swap-target', (data) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
-      const game = games.get(data.gameId);
-      if (!game) throw new Error('Game not found');
-      if (game.status !== 'playing') throw new Error('Game is not in progress');
-
-      const playerIndex = findPlayerIndex(game, socket.id);
-      if (playerIndex === -1) throw new Error('You are not in this game');
-      if (playerIndex !== game.currentPlayerIndex) throw new Error('It is not your turn');
+      const { game, playerIndex } = getMemberGame(socket, data?.gameId, {
+        requirePlaying: true,
+        requireActiveTurn: true,
+      });
 
       const swapResult = game.completeSwap(playerIndex, data.targetPlayerId, data.targetPieceIndex);
       markGameActivity(game);
@@ -547,7 +619,7 @@ io.on('connection', (socket) => {
 
       applyTurnTransition(game, false);
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      emitSocketError(socket, err);
     }
   });
 
@@ -557,38 +629,59 @@ io.on('connection', (socket) => {
   });
 
   // ── Reconnect ─────────────────────────────────────────────────────
-  socket.on('reconnect-game', (data) => {
+  socket.on('reconnect-game', (data, callback) => {
     try {
-      if (!validateGameId(data?.gameId)) throw new Error('Invalid game ID');
+      assertSocketCanEnterGame(socket, data?.gameId);
+      const gameIdResult = validateGameId(data?.gameId);
+      if (!gameIdResult.valid) throw new Error(gameIdResult.reason);
       const game = games.get(data.gameId);
       if (!game) throw new Error('Game not found');
+      if (typeof data?.reconnectToken !== 'string' || data.reconnectToken.length === 0) {
+        throw new Error('Reconnect token is missing');
+      }
 
       // Re-associate socket with the player
-      const playerIndex = game.players.findIndex((p) => p.id === data.playerId);
+      const playerIndex = game.players.findIndex(
+        (player) =>
+          player.publicId === data.playerId && player.reconnectToken === data.reconnectToken
+      );
       if (playerIndex === -1) throw new Error('Player not found in this game');
+      const previousSocketId = game.players[playerIndex].id;
 
       // Cancel any pending disconnect timer for the old socket
-      const oldTimer = disconnectTimers.get(data.playerId);
+      const oldTimer = disconnectTimers.get(previousSocketId);
       if (oldTimer) {
         clearTimeout(oldTimer);
-        disconnectTimers.delete(data.playerId);
+        disconnectTimers.delete(previousSocketId);
       }
 
       // Clean up old socket mapping
-      socketMap.delete(data.playerId);
+      socketMap.delete(previousSocketId);
 
       // Update player socket id
       game.players[playerIndex].id = socket.id;
-      if (game.creatorId === data.playerId) {
+      game.players[playerIndex].reconnectToken = crypto.randomUUID();
+      if (game.creatorId === previousSocketId) {
         game.creatorId = socket.id;
       }
 
       socket.join(game.id);
-      socketMap.set(socket.id, { gameId: game.id, playerIndex });
+      socketMap.set(socket.id, { gameId: game.id });
 
+      if (typeof callback === 'function') {
+        callback({
+          ok: true,
+          gameId: game.id,
+          playerId: game.players[playerIndex].publicId,
+          reconnectToken: game.players[playerIndex].reconnectToken,
+        });
+      }
       socket.emit('game-state', game.getState());
     } catch (err) {
-      socket.emit('error', { message: err.message });
+      if (typeof callback === 'function') {
+        callback({ ok: false, message: err.message });
+      }
+      emitSocketError(socket, err);
     }
   });
 
@@ -596,9 +689,24 @@ io.on('connection', (socket) => {
   socket.on('get-game-state', (data, callback) => {
     if (typeof callback !== 'function') return;
 
-    const gameId = data?.gameId || socketMap.get(socket.id)?.gameId;
+    const mappedGameId = getSocketEntry(socket.id)?.gameId || null;
+    const gameId = data?.gameId || mappedGameId;
     const game = gameId ? games.get(gameId) : null;
-    callback(game ? game.getState() : null);
+    if (!game) {
+      callback(null);
+      return;
+    }
+
+    const isMappedMember = mappedGameId === gameId && findPlayerIndex(game, socket.id) !== -1;
+    const hasReconnectProof =
+      typeof data?.playerId === 'string' &&
+      typeof data?.reconnectToken === 'string' &&
+      game.players.some(
+        (player) =>
+          player.publicId === data.playerId && player.reconnectToken === data.reconnectToken
+      );
+
+    callback(isMappedMember || hasReconnectProof ? game.getState() : null);
   });
 
   // ── Disconnect ────────────────────────────────────────────────────
@@ -622,10 +730,27 @@ io.on('connection', (socket) => {
  */
 function handleLeave(socket, gameId) {
   if (!gameId) return;
+  const disconnectTimer = disconnectTimers.get(socket.id);
+  if (disconnectTimer) {
+    clearTimeout(disconnectTimer);
+    disconnectTimers.delete(socket.id);
+  }
+
+  const entry = getSocketEntry(socket.id);
+  if (entry && entry.gameId !== gameId) {
+    return;
+  }
+
   const game = games.get(gameId);
   if (!game) return;
 
   const leavingPlayer = game.players.find((player) => player.id === socket.id) || null;
+  if (!leavingPlayer) {
+    socket.leave(gameId);
+    socketMap.delete(socket.id);
+    return;
+  }
+
   game.removePlayer(socket.id);
   socket.leave(gameId);
   socketMap.delete(socket.id);
@@ -635,8 +760,8 @@ function handleLeave(socket, gameId) {
     games.delete(gameId);
   } else {
     io.to(gameId).emit('player-left', {
-      playerId: socket.id,
-      playerName: leavingPlayer ? leavingPlayer.name : null,
+      playerId: leavingPlayer.publicId,
+      playerName: leavingPlayer.name,
       state: game.getState(),
     });
 

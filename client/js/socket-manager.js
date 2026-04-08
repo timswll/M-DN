@@ -4,6 +4,54 @@ const SocketManager = (() => {
   let socket = null;
   let reconnectAttempts = 0;
   const MAX_RECONNECT_ATTEMPTS = 10;
+  const GAME_INFO_KEY = 'currentGame';
+
+  const safeParseJSON = (value, fallback = null) => {
+    if (!value) return fallback;
+
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return fallback;
+    }
+  };
+
+  const readGameInfo = () => {
+    try {
+      const raw = localStorage.getItem(GAME_INFO_KEY);
+      const parsed = safeParseJSON(raw, null);
+      if (raw && !parsed) {
+        localStorage.removeItem(GAME_INFO_KEY);
+      }
+      return parsed;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const writeGameInfo = (gameInfo) => {
+    try {
+      localStorage.setItem(GAME_INFO_KEY, JSON.stringify(gameInfo));
+    } catch (_error) {
+      // Ignore storage failures; the live socket session still works for the current page.
+    }
+  };
+
+  const clearStoredGameInfo = () => {
+    try {
+      localStorage.removeItem(GAME_INFO_KEY);
+    } catch (_error) {
+      // Ignore storage failures.
+    }
+  };
+
+  const showInlineError = (message) => {
+    const errorBox = document.getElementById('error-message');
+    if (!errorBox) return;
+
+    errorBox.textContent = message;
+    errorBox.classList.add('visible');
+  };
 
   /**
    * Create one shared Socket.io connection and restore active sessions after reconnects.
@@ -27,15 +75,27 @@ const SocketManager = (() => {
       const page = window.location.pathname;
       const isGamePage = page.includes('game.html') || page.includes('waiting.html');
       if (isGamePage) {
-        const savedGame = JSON.parse(localStorage.getItem('currentGame') || 'null');
-        if (savedGame) {
-          socket.emit('reconnect-game', {
-            gameId: savedGame.gameId,
-            playerId: savedGame.playerId,
-          });
-          // Update stored playerId to new socket id after reconnect
-          savedGame.playerId = socket.id;
-          localStorage.setItem('currentGame', JSON.stringify(savedGame));
+        const savedGame = readGameInfo();
+        if (savedGame?.gameId && savedGame?.playerId && savedGame?.reconnectToken) {
+          socket.emit(
+            'reconnect-game',
+            {
+              gameId: savedGame.gameId,
+              playerId: savedGame.playerId,
+              reconnectToken: savedGame.reconnectToken,
+            },
+            (response) => {
+              if (!response?.ok) {
+                return;
+              }
+
+              writeGameInfo({
+                gameId: response.gameId,
+                playerId: response.playerId,
+                reconnectToken: response.reconnectToken,
+              });
+            }
+          );
         }
       }
     });
@@ -58,17 +118,7 @@ const SocketManager = (() => {
     });
 
     socket.on('room-full', () => {
-      const errorMessage = document.createElement('div');
-      errorMessage.textContent = '❌ Der Raum ist voll!';
-      errorMessage.style.color = 'red';
-      errorMessage.style.fontWeight = 'bold';
-      errorMessage.style.marginTop = '10px';
-      errorMessage.style.textAlign = 'center';
-
-      const joinButton = document.getElementById('join-game-btn');
-      if (joinButton) {
-        joinButton.parentElement.appendChild(errorMessage);
-      }
+      showInlineError('Der Raum ist voll.');
     });
 
     return socket;
@@ -89,17 +139,15 @@ const SocketManager = (() => {
   /**
    * Store the active game context locally so waiting/game pages can recover it after reloads.
    */
-  const saveGameInfo = (gameId, playerId) => {
-    localStorage.setItem('currentGame', JSON.stringify({ gameId, playerId }));
+  const saveGameInfo = (gameId, playerId, reconnectToken) => {
+    writeGameInfo({ gameId, playerId, reconnectToken });
   };
 
   const clearGameInfo = () => {
-    localStorage.removeItem('currentGame');
+    clearStoredGameInfo();
   };
 
-  const getGameInfo = () => {
-    return JSON.parse(localStorage.getItem('currentGame') || 'null');
-  };
+  const getGameInfo = () => readGameInfo();
 
   return { connect, getSocket, disconnect, saveGameInfo, clearGameInfo, getGameInfo };
 })();

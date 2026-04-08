@@ -16,8 +16,8 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 ## Features
 
 - **Echtzeit-Multiplayer**: 2–4 Spieler pro Raum über Socket.io
-- **Bots**: Lobbys Auffüllbar mit bis zu 3 Bots. 
-- **Superfelder**: Sonderfelder: Extrawurf-Feld, Schutzfeld, Risikofeld & Tauschfeld 
+- **Bots**: Lobbys können vor dem Start automatisch mit bis zu 3 Bots aufgefüllt werden
+- **Superfelder**: Extrawurf-Feld, Schutzfeld, Risikofeld und Tauschfeld sind vollständig spielbar integriert
 - **Responsive Design**: Spielbar auf Desktop, Tablet und Smartphone (Touch-fähig)
 - **Dark/Light Theme**: Umschaltbares Design, Auswahl wird in `localStorage` gespeichert
 - **Cheat Prevention**: Würfel und Zugvalidierung ausschließlich server-seitig
@@ -117,11 +117,13 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 │   ├── lobby.html         # Spiel erstellen / beitreten
 │   ├── waiting.html       # Warteraum vor Spielbeginn
 │   ├── game.html          # Spielbrett + Spielablauf
-│   ├── about.html         # Regeln & Über uns
+│   ├── about.html         # Projekt / Über uns
+│   ├── rules.html         # Regelseite
 │   ├── css/
 │   │   └── style.css      # Alle Styles (Theming, Responsive, Board)
 │   └── js/
 │       ├── main.js        # Theme-Toggle, Player-Info, Utilities
+│       ├── shared-game-config.js # Gemeinsame Board-/Sonderfeld-Konfiguration
 │       ├── socket-manager.js  # Socket.io Verbindungsmanagement + Reconnect
 │       ├── lobby.js       # Lobby-Logik (Erstellen/Beitreten)
 │       ├── waiting.js     # Warteraum-Logik (Spielerliste, Start)
@@ -151,7 +153,9 @@ Health-Check des Servers.
 
 ### `POST /api/games`
 
-Erstellt ein neues Spiel.
+Nur im Testmodus (`NODE_ENV=test`) aktiv. Die normale Spielerstellung läuft über Socket.io.
+
+Erstellt ein neues Testspiel.
 
 **Request Body**:
 
@@ -162,7 +166,7 @@ Erstellt ein neues Spiel.
 **Response** `201 Created`:
 
 ```json
-{ "gameId": "ABC123", "playerId": null }
+{ "gameId": "ABC123", "playerId": "8d4b7e1d-..." }
 ```
 
 **Response** `400 Bad Request`:
@@ -223,31 +227,37 @@ Gibt Informationen zu einem bestimmten Spiel zurück.
 
 ### Client → Server
 
-| Event            | Payload                  | Beschreibung                             |
-| ---------------- | ------------------------ | ---------------------------------------- |
-| `create-game`    | `{ playerName }`         | Neues Spiel erstellen                    |
-| `join-game`      | `{ gameId, playerName }` | Bestehendem Spiel beitreten              |
-| `start-game`     | `{ gameId }`             | Spiel starten (nur Game Master)          |
-| `roll-dice`      | `{ gameId }`             | Würfeln (nur aktueller Spieler)          |
-| `move-piece`     | `{ gameId, pieceIndex }` | Figur bewegen (0–3)                      |
-| `leave-game`     | `{ gameId }`             | Spiel verlassen                          |
-| `reconnect-game` | `{ gameId, playerId }`   | Nach Verbindungsabbruch erneut verbinden |
+| Event                | Payload                                               | Beschreibung                                            |
+| -------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `create-game`        | `{ playerName }`                                      | Neues Spiel erstellen                                   |
+| `join-game`          | `{ gameId, playerName }`                              | Bestehendem Spiel beitreten                             |
+| `start-game`         | `{ gameId, fillWithBots }`                            | Spiel starten, optional mit Bot-Auffüllung              |
+| `roll-dice`          | `{ gameId }`                                          | Würfeln (nur aktueller Spieler)                         |
+| `roll-risk-dice`     | `{ gameId }`                                          | Zusätzlichen Risiko-Wurf ausführen                      |
+| `move-piece`         | `{ gameId, pieceIndex }`                              | Figur bewegen (0–3)                                     |
+| `select-swap-target` | `{ gameId, targetPlayerId, targetPieceIndex }`        | Tauschziel nach Tauschfeld wählen                       |
+| `leave-game`         | `{ gameId }`                                          | Spiel verlassen                                         |
+| `reconnect-game`     | `{ gameId, playerId, reconnectToken }`                | Nach Verbindungsabbruch sicher erneut verbinden         |
+| `get-game-state`     | `{ gameId, playerId, reconnectToken }` + Ack-Callback | Aktuellen Spielzustand für berechtigte Clients abfragen |
 
 ### Server → Client
 
-| Event           | Payload                                        | Beschreibung                |
-| --------------- | ---------------------------------------------- | --------------------------- |
-| `game-created`  | `{ gameId, playerId, players }`                | Spiel wurde erstellt        |
-| `game-joined`   | `{ gameId, playerId, players }`                | Erfolgreich beigetreten     |
-| `player-joined` | `{ player, players }`                          | Ein Spieler ist beigetreten |
-| `player-left`   | `{ playerId, state }`                          | Ein Spieler hat verlassen   |
-| `game-started`  | `{ ...fullGameState }`                         | Spiel wurde gestartet       |
-| `game-state`    | `{ ...fullGameState }`                         | Aktueller Spielzustand      |
-| `dice-rolled`   | `{ value, validMoves, playerId }`              | Würfelergebnis              |
-| `piece-moved`   | `{ playerIndex, pieceIndex, captured, state }` | Figur wurde bewegt          |
-| `turn-changed`  | `{ ...fullGameState }`                         | Nächster Spieler ist dran   |
-| `game-over`     | `{ winner, state }`                            | Spiel beendet               |
-| `error`         | `{ message }`                                  | Fehlermeldung               |
+| Event                | Payload                                                                | Beschreibung                          |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| `game-created`       | `{ gameId, playerId, reconnectToken, players }`                        | Spiel wurde erstellt                  |
+| `game-joined`        | `{ gameId, playerId, reconnectToken, players }`                        | Erfolgreich beigetreten               |
+| `player-joined`      | `{ player, players }`                                                  | Ein Spieler ist beigetreten           |
+| `player-left`        | `{ playerId, playerName, state }`                                      | Ein Spieler hat verlassen             |
+| `game-started`       | `{ ...fullGameState }`                                                 | Spiel wurde gestartet                 |
+| `game-state`         | `{ ...fullGameState }`                                                 | Aktueller Spielzustand                |
+| `dice-rolled`        | `{ value, validMoves, playerId, rollAttempts, canRollAgain, state }`   | Würfelergebnis                        |
+| `piece-moved`        | `{ playerIndex, pieceIndex, captures, effects, pendingAction, state }` | Figur wurde bewegt                    |
+| `risk-roll-resolved` | `{ playerIndex, pieceIndex, roll, captures, effects, state }`          | Risiko-Feld wurde aufgelöst           |
+| `swap-completed`     | `{ source..., target..., state }`                                      | Tausch-Feld wurde abgeschlossen       |
+| `turn-changed`       | `{ ...fullGameState }`                                                 | Nächster Spieler ist dran             |
+| `game-aborted`       | `{ reason, message }`                                                  | Spiel wurde wegen Inaktivität beendet |
+| `game-over`          | `{ winner, state }`                                                    | Spiel beendet                         |
+| `error`              | `{ message }`                                                          | Fehlermeldung                         |
 
 ## Cheat Prevention
 
@@ -285,7 +295,7 @@ Jeder Zug wird vor der Ausführung vom Server validiert:
 
 - Disconnects werden mit einer 5-Sekunden-Grace-Period behandelt (für Seitennavigation)
 - Nach Ablauf wird der Spieler aus dem Spiel entfernt
-- Reconnect via `reconnect-game` Event mit Player-ID-Validierung
+- Reconnect via `reconnect-game` Event mit öffentlicher Spieler-ID und serverseitigem Reconnect-Token
 
 ## Spielregeln
 
@@ -303,3 +313,10 @@ Alle vier eigenen Figuren über das Spielfeld in die Zielfelder bringen.
 6. Bei einer **6**: nach dem Zug nochmal würfeln
 7. Im Zielbereich darf nicht übersprungen werden
 8. Wer alle 4 Figuren im Ziel hat, gewinnt
+
+### Sonderfelder
+
+- **Extra Wurf-Feld**: Nach der Landung erhält der Spieler sofort einen weiteren regulären Wurf.
+- **Tausch-Feld**: Nach der Landung darf die aktive Figur mit einer gegnerischen Figur auf dem Hauptpfad getauscht werden.
+- **Schutzfeld**: Figuren auf diesem Feld können nicht geschlagen werden.
+- **Risiko-Feld**: Nach der Landung wird ein zusätzlicher Risiko-Wurf ausgelöst. Bei 1 geht die Figur zurück ins Haus, bei 2 oder 3 zieht sie entsprechend rückwärts, bei 4 bis 6 entsprechend vorwärts.

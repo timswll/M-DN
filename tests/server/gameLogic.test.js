@@ -87,7 +87,7 @@ test('landing on the swap field creates a pending swap that can be completed', (
   putPieceOnBoard(game, 1, 0, 5);
 
   const moveResult = game.movePiece(0, 0);
-  const swapResult = game.completeSwap(0, game.players[1].id, 0);
+  const swapResult = game.completeSwap(0, game.players[1].publicId, 0);
 
   assert.equal(moveResult.pendingAction.type, 'swap');
   assert.equal(game.players[0].pieces[0].position, 5);
@@ -124,4 +124,14 @@ test('risk field metadata exposes the configured super fields for the board', ()
     SUPER_FIELDS.map((field) => field.type),
     ['extra_roll', 'swap', 'shield', 'risk']
   );
+});
+
+test('public game state does not expose internal socket ids or reconnect tokens', () => {
+  const game = createStartedGame(['Green', 'Red']);
+  const state = game.getState();
+
+  assert.equal(state.players[0].id, game.players[0].publicId);
+  assert.notEqual(state.players[0].id, game.players[0].id);
+  assert.equal('reconnectToken' in state.players[0], false);
+  assert.equal(state.creatorId, game.players[0].publicId);
 });

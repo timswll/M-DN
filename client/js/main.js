@@ -41,6 +41,7 @@ const ThemeManager = (() => {
     if (!btn) return;
 
     btn.textContent = theme === 'dark' ? '☀' : '☾';
+    btn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
     btn.setAttribute(
       'aria-label',
       theme === 'dark' ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren'
@@ -67,8 +68,21 @@ const PlayerInfo = (() => {
   /**
    * Store the preferred player name so it can be restored across pages.
    */
-  const getName = () => localStorage.getItem(KEY) || '';
-  const setName = (name) => localStorage.setItem(KEY, name);
+  const getName = () => {
+    try {
+      return localStorage.getItem(KEY) || '';
+    } catch (_error) {
+      return '';
+    }
+  };
+
+  const setName = (name) => {
+    try {
+      localStorage.setItem(KEY, name);
+    } catch (_error) {
+      // Ignore storage failures; the page can still continue without persistence.
+    }
+  };
 
   return { getName, setName };
 })();
@@ -110,6 +124,13 @@ const Utils = (() => {
   return { showError, showStatus, formatPlayerColor };
 })();
 
+const handleLegacyHashRedirect = () => {
+  if (window.location.pathname.endsWith('/about.html') && window.location.hash === '#rules') {
+    window.location.replace('rules.html');
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+  handleLegacyHashRedirect();
   ThemeManager.init();
 });

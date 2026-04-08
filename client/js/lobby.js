@@ -35,12 +35,12 @@ const Lobby = (() => {
 
     // Socket event listeners
     socket.on('game-created', (data) => {
-      SocketManager.saveGameInfo(data.gameId, socket.id);
+      SocketManager.saveGameInfo(data.gameId, data.playerId, data.reconnectToken);
       window.location.href = 'waiting.html';
     });
 
     socket.on('game-joined', (data) => {
-      SocketManager.saveGameInfo(data.gameId, socket.id);
+      SocketManager.saveGameInfo(data.gameId, data.playerId, data.reconnectToken);
       window.location.href = 'waiting.html';
     });
 
@@ -61,6 +61,10 @@ const Lobby = (() => {
     const name = getPlayerName();
     if (!name) {
       Utils.showError('error-message', 'Bitte gib einen Spielernamen ein.');
+      return false;
+    }
+    if (name.length < 2) {
+      Utils.showError('error-message', 'Der Spielername muss mindestens 2 Zeichen lang sein.');
       return false;
     }
     PlayerInfo.setName(name);
