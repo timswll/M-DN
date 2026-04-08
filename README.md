@@ -1,6 +1,6 @@
 # Online Multiplayer
 
-Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheating. Mehrere Spielräume ermöglichen parallele Partien mit 2–4 Spielern.
+Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheating. Mehrere Spielräume ermöglichen parallele Partien mit 2–4 Spielern oder alternativ mit Bots, wenn man alleine spielen möchte.
 
 ## Inhaltsverzeichnis
 
@@ -16,6 +16,8 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 ## Features
 
 - **Echtzeit-Multiplayer**: 2–4 Spieler pro Raum über Socket.io
+- **Bots**: Lobbys Auffüllbar mit bis zu 3 Bots. 
+- **Superfelder**: Sonderfelder: Extrawurf-Feld, Schutzfeld, Risikofeld & Tauschfeld 
 - **Responsive Design**: Spielbar auf Desktop, Tablet und Smartphone (Touch-fähig)
 - **Dark/Light Theme**: Umschaltbares Design, Auswahl wird in `localStorage` gespeichert
 - **Cheat Prevention**: Würfel und Zugvalidierung ausschließlich server-seitig
