@@ -1,0 +1,8 @@
+.about-shell .panel-grid {
+  align-items: start;
+}
+
+.about-shell .prose-card .btn {
+  justify-self: start;
+  margin-top: 0.2rem;
+}

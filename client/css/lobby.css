@@ -1,0 +1,45 @@
+.lobby-shell .form-group {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.lobby-shell .form-group label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.lobby-shell .form-input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+[data-theme='light'] .lobby-shell .form-input {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.lobby-shell .form-input:focus {
+  border-color: rgba(41, 121, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(41, 121, 255, 0.12);
+}
+
+.lobby-shell .error-message {
+  display: none;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 23, 68, 0.28);
+  background: rgba(255, 23, 68, 0.12);
+  color: #ffd6df;
+}
+
+.lobby-shell .error-message.visible {
+  display: block;
+}

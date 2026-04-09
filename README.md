@@ -120,7 +120,13 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 │   ├── about.html         # Projekt / Über uns
 │   ├── rules.html         # Regelseite
 │   ├── css/
-│   │   └── style.css      # Alle Styles (Theming, Responsive, Board)
+│   │   ├── main.css       # Globale Styles, Theme, Navigation, gemeinsame Komponenten
+│   │   ├── index.css      # Styles der Startseite
+│   │   ├── lobby.css      # Styles der Lobby-Seite
+│   │   ├── waiting.css    # Styles des Warteraums
+│   │   ├── game.css       # Styles der Spielseite
+│   │   ├── about.css      # Styles der Projektseite
+│   │   └── rules.css      # Styles der Regelseite
 │   └── js/
 │       ├── main.js        # Theme-Toggle, Player-Info, Utilities
 │       ├── shared-game-config.js # Gemeinsame Board-/Sonderfeld-Konfiguration
