@@ -7,6 +7,7 @@
  *  - Main path now runs clockwise on the rendered board
  */
 const crypto = require('crypto');
+const { generateRoomCode, randomIndex, rollDie } = require('./random');
 const {
   COLORS,
   COLOR_START_POSITIONS,
@@ -20,18 +21,9 @@ const SUPER_FIELD_BY_POSITION = new Map(SUPER_FIELDS.map((field) => [field.posit
 /** Map of gameId -> Game */
 const games = new Map();
 
-const generateRawId = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let id = '';
-  for (let i = 0; i < 6; i++) {
-    id += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return id;
-};
-
 const generateId = (store = games) => {
   for (let attempt = 0; attempt < 1000; attempt++) {
-    const id = generateRawId();
+    const id = generateRoomCode();
     if (!store.has(id)) {
       return id;
     }
@@ -161,7 +153,7 @@ class Game {
     });
 
     this.status = 'playing';
-    this.currentPlayerIndex = Math.floor(Math.random() * this.players.length);
+    this.currentPlayerIndex = randomIndex(this.players.length);
     this.diceRolled = false;
     this.diceValue = null;
     this.rollAttempts = 0;
@@ -174,7 +166,7 @@ class Game {
    * Roll the shared dice and handle the three-tries-in-base rule.
    */
   rollDice() {
-    const value = Math.floor(Math.random() * 6) + 1;
+    const value = rollDie();
     this.diceValue = value;
     this.diceRolled = true;
 
@@ -617,7 +609,7 @@ class Game {
       throw new Error('The risk piece is no longer on the shared board');
     }
 
-    const riskRoll = Math.floor(Math.random() * 6) + 1;
+    const riskRoll = rollDie();
     const riskResult = this._resolveRiskField(playerIndex, piece, riskRoll);
     this.pendingAction = null;
     this.lastActionAt = Date.now();

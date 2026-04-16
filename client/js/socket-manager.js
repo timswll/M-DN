@@ -5,6 +5,7 @@ const SocketManager = (() => {
   let reconnectAttempts = 0;
   const MAX_RECONNECT_ATTEMPTS = 10;
   const GAME_INFO_KEY = 'currentGame';
+  const SOCKET_ERROR_EVENT = 'game-error';
 
   const safeParseJSON = (value, fallback = null) => {
     if (!value) return fallback;
@@ -20,8 +21,15 @@ const SocketManager = (() => {
     try {
       const raw = localStorage.getItem(GAME_INFO_KEY);
       const parsed = safeParseJSON(raw, null);
-      if (raw && !parsed) {
+      const isValidGameInfo =
+        parsed &&
+        typeof parsed.gameId === 'string' &&
+        typeof parsed.playerId === 'string' &&
+        typeof parsed.reconnectToken === 'string';
+
+      if (raw && (!parsed || !isValidGameInfo)) {
         localStorage.removeItem(GAME_INFO_KEY);
+        return null;
       }
       return parsed;
     } catch (_error) {
@@ -113,7 +121,7 @@ const SocketManager = (() => {
       console.log('Reconnect failed after max attempts');
     });
 
-    socket.on('error', (data) => {
+    socket.on(SOCKET_ERROR_EVENT, (data) => {
       console.error('Server error:', data.message);
     });
 

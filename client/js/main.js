@@ -88,7 +88,7 @@ const PlayerInfo = (() => {
 })();
 
 const Utils = (() => {
-  let errorTimer = null;
+  const errorTimers = new Map();
 
   /**
    * Show a temporary inline error message inside the requested container.
@@ -100,14 +100,40 @@ const Utils = (() => {
     el.textContent = message;
     el.classList.add('visible');
 
-    if (errorTimer) clearTimeout(errorTimer);
-    errorTimer = setTimeout(() => el.classList.remove('visible'), 5000);
+    const existingTimer = errorTimers.get(containerId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+      el.classList.remove('visible');
+      errorTimers.delete(containerId);
+    }, 5000);
+
+    errorTimers.set(containerId, timer);
   };
 
   const showStatus = (containerId, message) => {
     const el = document.getElementById(containerId);
     if (el) {
       el.textContent = message;
+    }
+  };
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_error) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return copied;
     }
   };
 
@@ -121,7 +147,7 @@ const Utils = (() => {
     return colors[color] || color;
   };
 
-  return { showError, showStatus, formatPlayerColor };
+  return { showError, showStatus, formatPlayerColor, copyText };
 })();
 
 const handleLegacyHashRedirect = () => {

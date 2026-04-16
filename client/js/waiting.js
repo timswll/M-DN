@@ -51,7 +51,7 @@ const Waiting = (() => {
     socket.on('player-joined', handlePlayerJoined);
     socket.on('player-left', handlePlayerLeft);
     socket.on('game-started', handleGameStarted);
-    socket.on('error', handleError);
+    socket.on('game-error', handleError);
 
     // socket-manager already emits reconnect-game on connect for waiting/game pages
     // Re-read gameInfo in case it was updated by socket-manager
@@ -206,32 +206,19 @@ const Waiting = (() => {
     const code = gameInfo.gameId;
     const copyBtn = document.getElementById('copy-code-btn');
 
-    try {
-      await navigator.clipboard.writeText(code);
-      if (copyBtn) {
-        const original = copyBtn.textContent;
-        copyBtn.textContent = '✅';
-        setTimeout(() => {
-          copyBtn.textContent = original;
-        }, 2000);
-      }
-    } catch {
-      // Fallback for insecure contexts
-      const textarea = document.createElement('textarea');
-      textarea.value = code;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (copyBtn) {
-        const original = copyBtn.textContent;
-        copyBtn.textContent = '✅';
-        setTimeout(() => {
-          copyBtn.textContent = original;
-        }, 2000);
-      }
+    const showSuccess = () => {
+      if (!copyBtn) return;
+
+      const original = copyBtn.textContent;
+      copyBtn.textContent = '✅';
+      setTimeout(() => {
+        copyBtn.textContent = original;
+      }, 2000);
+    };
+
+    const copied = await Utils.copyText(code);
+    if (copied) {
+      showSuccess();
     }
   };
 

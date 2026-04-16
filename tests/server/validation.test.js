@@ -33,6 +33,23 @@ test('validatePlayerName enforces a minimum length of two characters', () => {
   });
 });
 
+test('validatePlayerName rejects blocked and offensive names', () => {
+  assert.deepEqual(validatePlayerName('Hitler'), {
+    valid: false,
+    reason: 'Dieser Name ist unerwünscht. Bitte wähle einen anderen.',
+  });
+
+  assert.deepEqual(validatePlayerName('H1tl3r'), {
+    valid: false,
+    reason: 'Dieser Name ist unerwünscht. Bitte wähle einen anderen.',
+  });
+
+  assert.deepEqual(validatePlayerName('Sex'), {
+    valid: false,
+    reason: 'Dieser Name ist unerwünscht. Bitte wähle einen anderen.',
+  });
+});
+
 test('validateGameId accepts six uppercase alphanumeric characters', () => {
   assert.deepEqual(validateGameId('AB12CD'), { valid: true });
   assert.deepEqual(validateGameId('ab12cd'), {

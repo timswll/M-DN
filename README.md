@@ -41,7 +41,7 @@ Server-seitige Spiellogik, Würfelberechnung und Zugvalidierung verhindern Cheat
 - [Node.js](https://nodejs.org/) (Version 18 oder höher)
 - npm (wird mit Node.js mitgeliefert)
 
-### Schritte
+### Schnellstart über das Projekt-Root
 
 ```bash
 # 1. Repository klonen
@@ -49,8 +49,7 @@ git clone https://github.com/timswll/MenschAergerDichNicht.git
 cd MenschAergerDichNicht
 
 # 2. Server-Abhängigkeiten installieren
-cd server
-npm install
+npm run install-server
 
 # 3. Server starten
 npm start
@@ -58,11 +57,37 @@ npm start
 
 Die Anwendung ist dann unter [http://localhost:8300](http://localhost:8300) erreichbar.
 
+### Alternative: direkt im `server/`-Ordner starten
+
+```bash
+git clone https://github.com/timswll/MenschAergerDichNicht.git
+cd MenschAergerDichNicht/server
+npm install
+npm start
+```
+
 ### Entwicklungsmodus
 
 ```bash
+# Vom Root aus
+npm run dev
+
+# Oder direkt im server/-Ordner
 cd server
-npm run dev   # Startet den Server mit --watch (Auto-Restart bei Dateiänderungen)
+npm run dev
+```
+
+### Qualitätssicherung
+
+```bash
+# Tests
+npm test
+
+# Syntax-Checks der JS-Dateien
+npm run lint
+
+# Projektweit formatieren
+npm run format
 ```
 
 ### Deployment
@@ -108,6 +133,7 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 ├── server/
 │   ├── index.js           # Express + Socket.io Server (Einstiegspunkt)
 │   ├── gameLogic.js       # Spiellogik: Board, Züge, Validierung, Gewinnbedingung
+│   ├── random.js          # Hilfsfunktionen für Zufallszahlen und Raumcodes
 │   ├── validation.js      # Eingabevalidierung, Middleware, Cheat Prevention
 │   ├── routes/
 │   │   └── api.js         # REST API Routen
@@ -129,11 +155,20 @@ Das Spiel ist dann unter `http://141.72.136.155:8300` erreichbar.
 │   │   └── rules.css      # Styles der Regelseite
 │   └── js/
 │       ├── main.js        # Theme-Toggle, Player-Info, Utilities
+│       ├── background-scene.js # Animierter SVG-Hintergrund
+│       ├── name-policy.js # Gemeinsame Sperrliste für unerwünschte Spielernamen
+│       ├── game-rules.js  # Clientseitige Zuglogik für Move-Highlights
 │       ├── shared-game-config.js # Gemeinsame Board-/Sonderfeld-Konfiguration
 │       ├── socket-manager.js  # Socket.io Verbindungsmanagement + Reconnect
 │       ├── lobby.js       # Lobby-Logik (Erstellen/Beitreten)
 │       ├── waiting.js     # Warteraum-Logik (Spielerliste, Start)
 │       └── game.js        # Spielbrett-Rendering, Würfel, Züge
+├── tests/
+│   └── server/
+│       ├── gameLogic.test.js   # Tests für Spiellogik und Sonderfelder
+│       ├── validation.test.js  # Tests für Eingabe- und Zugvalidierung
+│       └── helpers/
+│           └── gameTestUtils.js # Test-Helfer zum Aufsetzen von Spielzuständen
 ├── package.json           # Root-Scripts
 ├── .gitignore
 └── README.md
@@ -263,15 +298,15 @@ Gibt Informationen zu einem bestimmten Spiel zurück.
 | `turn-changed`       | `{ ...fullGameState }`                                                 | Nächster Spieler ist dran             |
 | `game-aborted`       | `{ reason, message }`                                                  | Spiel wurde wegen Inaktivität beendet |
 | `game-over`          | `{ winner, state }`                                                    | Spiel beendet                         |
-| `error`              | `{ message }`                                                          | Fehlermeldung                         |
+| `game-error`         | `{ message }`                                                          | Fehlermeldung                         |
 
 ## Cheat Prevention
 
 Die Cheat-Prevention-Strategie folgt dem Prinzip **„Never trust the client"**:
 
-### 1. Server-seitige Würfelberechnung
+### 1. Server-seitige Würfel- und Zufallslogik
 
-Der Würfel wird **ausschließlich auf dem Server** berechnet (`Math.random()` in `gameLogic.js`). Der Client sendet lediglich die Anfrage zum Würfeln – der Würfelwert wird nie vom Client übermittelt.
+Würfelwürfe, Bot-Auswahlen und Raumcodes werden ausschließlich auf dem Server erzeugt. Die Hilfsfunktionen dafür liegen zentral in `server/random.js`, die Spiellogik in `server/gameLogic.js` verwendet diese Werte nur weiter. Der Client sendet lediglich die Anfrage zum Würfeln – der Würfelwert wird nie vom Client übermittelt.
 
 ### 2. Zugvalidierung
 
@@ -286,6 +321,7 @@ Jeder Zug wird vor der Ausführung vom Server validiert:
 
 - **Spielernamen**: Maximal 20 Zeichen, nur Buchstaben/Zahlen/Leerzeichen/Umlaute erlaubt
 - **HTML-Injection**: Zeichen `<` und `>` werden abgelehnt
+- **No-Go-Namensliste**: Unerwünschte, beleidigende, sexualisierte und extremistische Namen werden client- und serverseitig blockiert
 - **Spiel-IDs**: Müssen dem Format `[A-Z0-9]{6}` entsprechen
 - **Express-Middleware**: `nameValidationMiddleware` und `gameIdValidationMiddleware` für REST-Endpunkte
 
@@ -293,7 +329,7 @@ Jeder Zug wird vor der Ausführung vom Server validiert:
 
 - Der gesamte Spielzustand lebt auf dem Server (`gameLogic.js`)
 - Clients erhalten nur eine serialisierte Kopie via `getState()`
-- Ungültige Socket-Events werden mit `error`-Events beantwortet
+- Ungültige Socket-Events werden mit `game-error`-Events beantwortet
 - Doppeltes Würfeln pro Zug wird verhindert (`diceRolled`-Flag)
 - Nach einer Stunde ohne Bewegung im Spiel bricht das Spiel ab und jeder Spieler kommt zurück zum Start
 
@@ -325,4 +361,4 @@ Alle vier eigenen Figuren über das Spielfeld in die Zielfelder bringen.
 - **Extra Wurf-Feld**: Nach der Landung erhält der Spieler sofort einen weiteren regulären Wurf.
 - **Tausch-Feld**: Nach der Landung darf die aktive Figur mit einer gegnerischen Figur auf dem Hauptpfad getauscht werden.
 - **Schutzfeld**: Figuren auf diesem Feld können nicht geschlagen werden.
-- **Risiko-Feld**: Nach der Landung wird ein zusätzlicher Risiko-Wurf ausgelöst. Bei 1 geht die Figur zurück ins Haus, bei 2 oder 3 zieht sie entsprechend rückwärts, bei 4 bis 6 entsprechend vorwärts.
+- **Risiko-Feld**: Nach der Landung muss ein zusätzlicher Risiko-Wurf ausgelöst werden. Bei 1 geht die Figur zurück ins Haus, bei 2 oder 3 zieht sie entsprechend rückwärts, bei 4 bis 6 entsprechend vorwärts.

@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
 const { Game, games } = require('./gameLogic');
+const { randomIndex } = require('./random');
 const { validatePlayerName, validateGameId, validateMove } = require('./validation');
 const apiRouter = require('./routes/api');
 
@@ -32,6 +33,7 @@ const inactivityTimers = new Map();
 const BOT_ACTION_DELAY_MS = 900;
 const NO_MOVE_NOTICE_MS = 3000;
 const GAME_INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+const SOCKET_ERROR_EVENT = 'game-error';
 
 /**
  * Find the player index for a socket inside a game.
@@ -93,7 +95,7 @@ const getMemberGame = (socket, requestedGameId, options = {}) => {
 };
 
 const emitSocketError = (socket, err) => {
-  socket.emit('error', { message: err.message });
+  socket.emit(SOCKET_ERROR_EVENT, { message: err.message });
 };
 
 const clearBotTimer = (gameId) => {
@@ -277,7 +279,7 @@ const resolveBotSwap = (game) => {
     return;
   }
 
-  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const target = candidates[randomIndex(candidates.length)];
   const swapResult = game.completeSwap(playerIndex, target.playerId, target.pieceIndex);
 
   io.to(game.id).emit('swap-completed', {
@@ -367,7 +369,7 @@ const runBotTurn = (gameId) => {
       return;
     }
 
-    const pieceIndex = validMoves[Math.floor(Math.random() * validMoves.length)];
+    const pieceIndex = validMoves[randomIndex(validMoves.length)];
     const moveOutcome = game.movePiece(playerIndex, pieceIndex);
     markGameActivity(game);
 

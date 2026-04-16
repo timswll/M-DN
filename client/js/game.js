@@ -2,8 +2,7 @@
 
 const Game = (() => {
   const SHARED_CONFIG = globalThis.GameConfig || {};
-  const BOARD_SIZE = SHARED_CONFIG.BOARD_SIZE || 40;
-  const PIECES_PER_PLAYER = SHARED_CONFIG.PIECES_PER_PLAYER || 4;
+  const CLIENT_RULES = globalThis.GameRules || {};
   const MAX_LOG_ENTRIES = 18;
   const NO_MOVE_NOTICE_MS = 3000;
   const COLORS = SHARED_CONFIG.COLORS || ['green', 'red', 'blue', 'yellow'];
@@ -146,6 +145,10 @@ const Game = (() => {
   let allowPageExit = false;
 
   const cellLookup = new Map();
+  const computeClientValidMoves = (state, playerIndex) =>
+    typeof CLIENT_RULES.computeValidMoves === 'function'
+      ? CLIENT_RULES.computeValidMoves(state, playerIndex)
+      : [];
 
   /**
    * Build a fast lookup from board coordinates to semantic field metadata.
@@ -223,7 +226,10 @@ const Game = (() => {
         cell.dataset.col = col;
 
         if (info?.type === 'center') {
-          cell.innerHTML = '<span class="center-star">&#9733;</span>';
+          const star = document.createElement('span');
+          star.className = 'center-star';
+          star.textContent = '★';
+          cell.appendChild(star);
         }
 
         if (info?.superField) {
@@ -233,7 +239,10 @@ const Game = (() => {
 
           const tooltip = document.createElement('div');
           tooltip.className = 'cell-tooltip';
-          tooltip.innerHTML = `<strong>${info.superField.title}</strong>${info.superField.description}`;
+          const title = document.createElement('strong');
+          title.textContent = info.superField.title;
+          tooltip.appendChild(title);
+          tooltip.append(document.createTextNode(info.superField.description));
 
           cell.appendChild(badge);
           cell.appendChild(tooltip);
@@ -274,7 +283,7 @@ const Game = (() => {
       return;
     }
 
-    validMoves = computeValidMoves(gameState, gameState.currentPlayerIndex);
+    validMoves = computeClientValidMoves(gameState, gameState.currentPlayerIndex);
   };
 
   const clearPieces = () => {
@@ -861,7 +870,7 @@ const Game = (() => {
 
     if (playerId === getCurrentPlayerId()) {
       validMoves =
-        moves.length > 0 ? moves : computeValidMoves(gameState, gameState.currentPlayerIndex);
+        moves.length > 0 ? moves : computeClientValidMoves(gameState, gameState.currentPlayerIndex);
 
       if (validMoves.length === 0 && canRollAgain) {
         addLogEntry(`${rollerName} hat keinen Zug und darf erneut würfeln`);
@@ -1049,126 +1058,6 @@ const Game = (() => {
   };
 
   /**
-   * Mirror server move rules locally so the client only highlights moves that should be clickable.
-   */
-  const computeValidMoves = (state, playerIndex) => {
-    const player = state?.players?.[playerIndex];
-    const dice = state?.diceValue;
-
-    if (!player || dice === null || state.pendingAction) {
-      return [];
-    }
-
-    const moves = [];
-
-    for (let pieceIndex = 0; pieceIndex < PIECES_PER_PLAYER; pieceIndex++) {
-      const piece = player.pieces[pieceIndex];
-
-      if (piece.isBase) {
-        if (dice === 6) {
-          const startPosition = START_POSITIONS[player.color];
-          if (!isBoardDestinationBlocked(state, playerIndex, startPosition)) {
-            moves.push(pieceIndex);
-          }
-        }
-        continue;
-      }
-
-      if (piece.isHome) {
-        const newHome = piece.homePosition + dice;
-        if (
-          newHome < PIECES_PER_PLAYER &&
-          !ownPieceInHome(player, newHome) &&
-          !homePathBlocked(player, piece.homePosition, newHome)
-        ) {
-          moves.push(pieceIndex);
-        }
-        continue;
-      }
-
-      const stepsFromStart = getStepsFromStart(player.color, piece.position);
-      const newSteps = stepsFromStart + dice;
-
-      if (newSteps >= BOARD_SIZE) {
-        const homeSlot = newSteps - BOARD_SIZE;
-        if (
-          homeSlot < PIECES_PER_PLAYER &&
-          !ownPieceInHome(player, homeSlot) &&
-          !homePathBlocked(player, -1, homeSlot)
-        ) {
-          moves.push(pieceIndex);
-        }
-        continue;
-      }
-
-      const target = (piece.position + dice) % BOARD_SIZE;
-      if (!isBoardDestinationBlocked(state, playerIndex, target)) {
-        moves.push(pieceIndex);
-      }
-    }
-
-    if (dice === 6) {
-      const hasBasePiece = player.pieces.some((piece) => piece.isBase);
-      const startPosition = START_POSITIONS[player.color];
-      const movableStartPieces = moves.filter((moveIndex) => {
-        const piece = player.pieces[moveIndex];
-        return !piece.isBase && !piece.isHome && piece.position === startPosition;
-      });
-
-      if (hasBasePiece && !findBoardPiece(state, startPosition)) {
-        return moves.filter((moveIndex) => player.pieces[moveIndex].isBase);
-      }
-
-      if (hasBasePiece && movableStartPieces.length > 0) {
-        return movableStartPieces;
-      }
-    }
-
-    return moves;
-  };
-
-  const getStepsFromStart = (playerColor, boardPosition) => {
-    const start = START_POSITIONS[playerColor];
-    return (boardPosition - start + BOARD_SIZE) % BOARD_SIZE;
-  };
-
-  const ownPieceInHome = (player, homeSlot) =>
-    player.pieces.some((piece) => piece.isHome && piece.homePosition === homeSlot);
-
-  const homePathBlocked = (player, fromSlot, targetSlot) => {
-    for (let slot = fromSlot + 1; slot <= targetSlot; slot++) {
-      if (ownPieceInHome(player, slot)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const getFieldAt = (boardPosition) => SUPER_FIELDS.get(boardPosition) || null;
-
-  const isShieldField = (boardPosition) => getFieldAt(boardPosition)?.type === 'shield';
-
-  const findBoardPiece = (state, boardPosition) => {
-    for (let playerIndex = 0; playerIndex < state.players.length; playerIndex++) {
-      const player = state.players[playerIndex];
-      for (let pieceIndex = 0; pieceIndex < player.pieces.length; pieceIndex++) {
-        const piece = player.pieces[pieceIndex];
-        if (!piece.isBase && !piece.isHome && piece.position === boardPosition) {
-          return { playerIndex, pieceIndex, piece, player };
-        }
-      }
-    }
-    return null;
-  };
-
-  const isBoardDestinationBlocked = (state, playerIndex, boardPosition) => {
-    const occupant = findBoardPiece(state, boardPosition);
-    if (!occupant) return false;
-    if (occupant.playerIndex === playerIndex) return true;
-    return isShieldField(boardPosition);
-  };
-
-  /**
    * Wire the page once and then let socket events drive all stateful updates.
    */
   const init = () => {
@@ -1282,7 +1171,7 @@ const Game = (() => {
     socket.on('game-over', onGameOver);
     socket.on('game-aborted', onGameAborted);
     socket.on('player-left', onPlayerLeft);
-    socket.on('error', onError);
+    socket.on('game-error', onError);
 
     socket.emit(
       'get-game-state',

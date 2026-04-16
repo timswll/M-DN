@@ -2,6 +2,8 @@
  * Input validation helpers and Express middleware for the MÄDN game server.
  */
 
+const NamePolicy = require('../client/js/name-policy');
+
 const GAME_ID_PATTERN = /^[A-Z0-9]{6}$/;
 const NAME_PATTERN = /^[0-9A-Za-zÀ-ÖØ-öø-ÿ\s]+$/u;
 const MIN_PLAYER_NAME_LENGTH = 2;
@@ -45,6 +47,11 @@ const validatePlayerName = (name) => {
       valid: false,
       reason: 'Player name may only contain letters, numbers, spaces, and umlauts',
     };
+  }
+
+  const policyResult = NamePolicy.validateName(sanitized);
+  if (!policyResult.valid) {
+    return policyResult;
   }
 
   return { valid: true, sanitized };

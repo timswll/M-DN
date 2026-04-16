@@ -11,7 +11,7 @@
     "test:watch": "node --test --watch --test-concurrency=1 tests/server/gameLogic.test.js tests/server/validation.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "node --check server/index.js && node --check server/gameLogic.js && node --check server/validation.js && node --check server/routes/api.js && node --check client/js/main.js && node --check client/js/background-scene.js && node --check client/js/shared-game-config.js && node --check client/js/socket-manager.js && node --check client/js/lobby.js && node --check client/js/waiting.js && node --check client/js/game.js && node --check tests/server/helpers/gameTestUtils.js && node --check tests/server/gameLogic.test.js && node --check tests/server/validation.test.js"
+    "lint": "node --check server/index.js && node --check server/gameLogic.js && node --check server/random.js && node --check server/validation.js && node --check server/routes/api.js && node --check client/js/main.js && node --check client/js/background-scene.js && node --check client/js/name-policy.js && node --check client/js/game-rules.js && node --check client/js/shared-game-config.js && node --check client/js/socket-manager.js && node --check client/js/lobby.js && node --check client/js/waiting.js && node --check client/js/game.js && node --check tests/server/helpers/gameTestUtils.js && node --check tests/server/gameLogic.test.js && node --check tests/server/validation.test.js"
   },
   "keywords": [
     "board-game",

@@ -44,7 +44,7 @@ const Lobby = (() => {
       window.location.href = 'waiting.html';
     });
 
-    socket.on('error', (data) => {
+    socket.on('game-error', (data) => {
       Utils.showError('error-message', data.message || 'Ein Fehler ist aufgetreten.');
     });
   };
@@ -67,6 +67,16 @@ const Lobby = (() => {
       Utils.showError('error-message', 'Der Spielername muss mindestens 2 Zeichen lang sein.');
       return false;
     }
+
+    if (globalThis.NamePolicy?.isBlockedName(name)) {
+      Utils.showError(
+        'error-message',
+        globalThis.NamePolicy.GENERIC_REJECTION_MESSAGE ||
+          'Dieser Name ist unerwünscht. Bitte wähle einen anderen.'
+      );
+      return false;
+    }
+
     PlayerInfo.setName(name);
     return true;
   };
