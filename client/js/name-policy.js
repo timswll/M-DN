@@ -37,6 +37,8 @@
     'nazi',
     'nsdap',
     'gestapo',
+    'HH',
+    'HH88',
     'schutzstaffel',
     'whitesupremacy',
     'whitepower',
